@@ -1,0 +1,2381 @@
+import io
+import json
+import os
+import re
+from typing import Any, Dict, List, Tuple
+
+import pandas as pd
+import streamlit as st
+from google import generativeai as genai
+
+
+st.set_page_config(
+    page_title="BioExtract — Structured Literature Triage",
+    page_icon="⬡",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
+:root {
+        --ink: #0D1B2A;
+        --ink-light: #4A5568;
+        --muted: #8896A5;
+        --line: #E2E8F0;
+        --surface: #F7F9FC;
+        --bg: #FFFFFF;
+        --accent: #1A56DB;
+        --accent-dim: #EBF2FF;
+        --success: #166534;
+        --warning: #92400E;
+        --danger: #991B1B;
+        --success-bg: #F0FDF4;
+        --warning-bg: #FFFBEB;
+        --danger-bg: #FEF2F2;
+    }
+
+    .stApp {
+        background: var(--bg) !important;
+        color: var(--ink) !important;
+        font-family: 'Inter', system-ui, sans-serif !important;
+    }
+
+    div.block-container {
+        padding: 24px 32px !important;
+        max-width: 100% !important;
+    }
+
+    section[data-testid="stSidebar"] {
+        display: none !important;
+    }
+
+    div.block-container {
+        padding: 24px 48px !important;
+        max-width: 100% !important;
+    }
+
+    [data-testid="stFileUploader"] {
+        padding: 0 !important;
+    }
+    [data-testid="stFileUploader"] section {
+        padding: 6px 10px !important;
+        min-height: 38px !important;
+        border-radius: 6px !important;
+    }
+    [data-testid="stFileUploader"] label {
+        display: none !important;
+    }
+
+    .sidebar-logo {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--accent);
+        padding: 20px 16px 12px;
+        border-bottom: none;
+    }
+    .sidebar-logo span { color: var(--muted); font-size: 11px; font-weight: 400; }
+
+    .sidebar-section-label {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 1px;
+        color: var(--muted);
+        text-transform: uppercase;
+        margin-top: 24px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #E2E8F0;
+    }
+
+    .stButton button[kind="primary"] {
+        background: #1A56DB !important;
+        color: white !important;
+        border-radius: 6px !important;
+        height: 40px !important;
+        font-size: 13px !important;
+        font-weight: 500 !important;
+    }
+    .stButton button[kind="primary"]:hover {
+        background: #1648C0 !important;
+    }
+
+    [data-testid="metric-container"] {
+        background: var(--surface) !important;
+        border: 1px solid var(--line) !important;
+        border-radius: 8px !important;
+        padding: 16px 20px !important;
+    }
+    [data-testid="stMetricValue"] {
+        font-size: 28px !important;
+        font-weight: 700 !important;
+        color: var(--accent) !important;
+    }
+    [data-testid="stMetricLabel"] {
+        font-size: 11px !important;
+        font-weight: 600 !important;
+        color: var(--muted) !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.8px !important;
+    }
+
+    .section-label {
+        font-size: 9px;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin: 0 0 12px 0;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--line);
+        font-family: 'Inter', sans-serif;
+    }
+
+    .kpi-band {
+        background: #F7F9FC;
+        border-top: 1px solid #E2E8F0;
+        border-bottom: 1px solid #E2E8F0;
+        padding: 4px 0;
+        margin: 0 -32px 20px -32px;
+    }
+
+    .stTextArea textarea {
+        font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
+        font-size: 12px !important;
+        line-height: 1.6 !important;
+        color: var(--ink) !important;
+        background: var(--bg) !important;
+        border: 1px solid var(--line) !important;
+        border-radius: 6px !important;
+        padding: 12px !important;
+        resize: vertical !important;
+    }
+    .stTextArea textarea:focus {
+        border-color: var(--accent) !important;
+        outline: none !important;
+        box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.08) !important;
+    }
+    .stTextArea textarea::placeholder {
+        color: var(--muted) !important;
+        font-style: italic !important;
+    }
+
+    .verdict-ok {
+        background: var(--success-bg);
+        border: 1px solid #BBF7D0;
+        border-left: 4px solid var(--success);
+        border-radius: 6px;
+        padding: 12px 16px;
+        font-size: 13px;
+        color: var(--success);
+        font-weight: 500;
+    }
+    .verdict-warning {
+        background: var(--warning-bg);
+        border: 1px solid #FDE68A;
+        border-left: 4px solid var(--warning);
+        border-radius: 6px;
+        padding: 12px 16px;
+        font-size: 13px;
+        color: var(--warning);
+        font-weight: 500;
+    }
+    .verdict-critical {
+        background: var(--danger-bg);
+        border: 1px solid #FECACA;
+        border-left: 4px solid var(--danger);
+        border-radius: 6px;
+        padding: 12px 16px;
+        font-size: 13px;
+        color: var(--danger);
+        font-weight: 500;
+    }
+
+    .stDataFrame {
+        border: 1px solid var(--line) !important;
+        border-radius: 8px !important;
+        overflow: hidden !important;
+    }
+    .stDataFrame thead th {
+        background: var(--surface) !important;
+        color: var(--muted) !important;
+        font-size: 10px !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.8px !important;
+        border-bottom: 2px solid var(--line) !important;
+        padding: 10px 12px !important;
+    }
+    .stDataFrame tbody tr {
+        border-bottom: 1px solid var(--line) !important;
+    }
+    .stDataFrame tbody tr:hover {
+        background: var(--accent-dim) !important;
+    }
+    .stDataFrame tbody td {
+        font-size: 12px !important;
+        color: var(--ink) !important;
+        padding: 8px 12px !important;
+    }
+
+    .json-display {
+        background: #0D1B2A;
+        color: #A8D8A8;
+        border-radius: 8px;
+        padding: 20px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        line-height: 1.7;
+        max-height: 500px;
+        overflow-y: auto;
+        border: none;
+        white-space: pre-wrap;
+    }
+
+    .alert-success { background: var(--success-bg); color: var(--success); padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+    .alert-warning { background: var(--warning-bg); color: var(--warning); padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+    .alert-danger { background: var(--danger-bg); color: var(--danger); padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+    .alert-clinical { background: var(--surface); border-left: 3px solid; padding: 12px 16px; border-radius: 0 6px 6px 0; }
+    .alert-review { border-left-color: var(--danger); }
+    .alert-acceptable { border-left-color: var(--warning); }
+
+    .controls-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: #F7F9FC;
+        border: 1px solid #E2E8F0;
+        border-radius: 8px;
+        padding: 10px 16px;
+        margin-bottom: 16px;
+    }
+
+#MainMenu { visibility: hidden; }
+footer { visibility: hidden; }
+header { visibility: hidden; }
+.stDeployButton { visibility: hidden; }
+</style>
+""", unsafe_allow_html=True)
+
+# HEADER
+st.markdown('''
+<div style="
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #E2E8F0;
+">
+    <span style="
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        font-weight: 700;
+        color: #1A56DB;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+    ">BIOEXTRACT</span>
+    <span style="
+        font-size: 18px;
+        font-weight: 600;
+        color: #0D1B2A;
+        font-family: 'Inter', sans-serif;
+    ">Structured Literature Triage</span>
+    <span style="
+        font-size: 11px;
+        color: #8896A5;
+        font-family: 'Inter', sans-serif;
+        margin-left: auto;
+        border-left: 2px solid #E2E8F0;
+        padding-left: 16px;
+        line-height: 1.4;
+        max-width: 480px;
+        text-align: right;
+    ">Extrae entidades biomédicas · Detecta anomalías matemáticas · 
+    No evalúa calidad metodológica ni reemplaza el paper original</span>
+</div>
+''', unsafe_allow_html=True)
+
+
+# CONTROLES HORIZONTALES
+ctrl1, ctrl2, ctrl3 = st.columns([3, 1.5, 1.5])
+
+with ctrl1:
+    user_api_key = st.text_input(
+        "api_key_input",
+        type="password",
+        placeholder="API key de Gemini (opcional — 5 análisis gratuitos sin key)",
+        label_visibility="collapsed"
+    )
+
+with ctrl2:
+    mode = st.radio(
+        "modo",
+        options=["Individual", "Masivo"],
+        horizontal=True,
+        label_visibility="collapsed"
+    )
+
+with ctrl3:
+    run_button = st.button(
+        "⬡  Ejecutar análisis",
+        type="primary",
+        use_container_width=True
+    )
+
+file_df = pd.DataFrame()
+selected_column = None
+uploaded_file = None
+
+if mode == "Masivo":
+    st.markdown(
+        '<div class="section-label">ARCHIVO CSV / EXCEL</div>',
+        unsafe_allow_html=True
+    )
+    up1, up2 = st.columns([3, 2])
+    with up1:
+        uploaded_file = st.file_uploader(
+            "CSV/Excel",
+            type=["csv", "xlsx", "xls"],
+            accept_multiple_files=False,
+            label_visibility="collapsed"
+        )
+    with up2:
+        if uploaded_file is not None:
+            try:
+                file_df = load_file_data(uploaded_file)
+                if file_df.empty:
+                    st.warning("⚠️ Archivo vacío")
+                else:
+                    selected_column = st.selectbox(
+                        "Columna de abstracts",
+                        options=list(file_df.columns)
+                    )
+                    st.caption(f"✅ {len(file_df)} registros cargados")
+            except Exception as exc:
+                st.error(f"❌ Error: {exc}")
+
+model_preference = "Automático (recomendado)"
+
+
+def build_prompt(abstract: str) -> str:
+    return f"""
+Extrae entidades biomedicas del siguiente abstract.
+
+REGLAS:
+1. Extrae biomarcadores, grupos demograficos y metricas estadisticas.
+2. Para subtipos clinicos agrupados, descompón en biomarcadores implicitos:
+   - hormone receptor-positive → ER+, PR+ (inferido)
+   - triple-negative → ER-, PR-, HER2- (inferido)
+   - HER2-positive → ERBB2 amplificado (inferido)
+   Aplica esta logica para cualquier patologia.
+3. Captura TODOS los numeros del texto: porcentajes, tasas, HR, OR, p-values.
+   Cada numero debe estar asociado a la entidad correcta.
+   REGLA ESPECIAL para comparativas:
+   - "38% higher mortality than X" → mortalidad_pct=38 (diferencial vs referencia)
+   - "5% lower incidence than X" → incidencia_anual_pct=-5 (negativo = menor)
+   - "10% less likely" → diagnostico_estadio_pct=-10
+   Siempre captura el número aunque sea una comparación relativa.
+4. REGLA CAUSAL: asigna una metrica a una entidad SOLO si el texto
+   lo relaciona directamente. Preserva cualificadores: "partly",
+   "only", "significantly".
+5. REGLA OBLIGATORIA — INTERVALOS DE CONFIANZA:
+   Si el texto menciona un IC, CI, 95% CI, confidence interval,
+   o cualquier rango entre paréntesis asociado a HR, OR, RR:
+   - Extrae SIEMPRE los límites como campos separados en metricas:
+     ci_lower: valor_numérico_inferior
+     ci_upper: valor_numérico_superior
+   - Nunca los omitas aunque ya estén en el texto del fragmento
+   - Nunca los metas solo en el campo 'otros'
+   - Ejemplo: 'HR=0.73 (95% CI 0.74-0.89)' →
+     HR=0.73, ci_lower=0.74, ci_upper=0.89
+6. Genera señales_prioritarias para hallazgos relevantes:
+   paradojas, disparidades, tendencias emergentes, vacios de conocimiento.
+
+REGLA 7 — CONTAMINACIÓN DE PROTOCOLO:
+Si el abstract menciona cualquier parámetro de procesamiento
+de muestras, extráelo como entidad separada con tipo="protocolo"
+y relacion_causal="contaminacion". No lo omitas aunque parezca
+irrelevante. Ejemplos de lo que debes capturar:
+- Temperaturas de almacenamiento o procesamiento ("stored at -20°C",
+  "processed at 37°C", "room temperature")
+- Velocidades de centrifugación ("centrifuged at 1500 rpm")
+- Tiempos de incubación ("incubated for 48 hours")
+- Condiciones instrumentales ("absorbance at 450nm")
+- Concentraciones de reactivos ("0.1% Triton X-100")
+Cualquier valor que describa cómo se procesó la muestra,
+no qué le ocurre al paciente o al tejido biológico.
+
+FORMATO JSON (respeta las claves exactas):
+{{
+  "entidades_de_riesgo": [
+    {{
+      "nombre": "nombre exacto del texto",
+      "tipo": "molecular|demografico|epidemiologico|clinico|protocolo",
+      "resolucion": "literal|agregado_clinico|epidemiologico",
+      "biomarcadores_implicitos": [
+        {{"marcador": "ER+", "estado": "inferido"}}
+      ],
+      "metricas": {{
+        "p_value": null,
+        "HR": null,
+        "OR": null,
+        "ci_lower": null,
+        "ci_upper": null,
+        "LFC": null,
+        "incidencia_anual_pct": null,
+        "mortalidad_pct": null,
+        "tasa_100k": null,
+        "reduccion_mortalidad_pct": null,
+        "diagnostico_estadio_pct": null,
+        "n_absoluto": null,
+        "otros": "string con metricas no clasificables o null"
+      }},
+      "poblacion_afectada": ["grupo"],
+      "relacion_causal": "causal|correlacional|asociativo|parcial",
+      "cualificador_original": "texto con partly/only/significantly si existe",
+      "fragmento_fuente": "texto exacto del abstract"
+    }}
+  ],
+  "señales_prioritarias": [
+    {{
+      "tipo": "paradoja|disparidad|tendencia_emergente|vacio_conocimiento",
+      "descripcion": "descripcion concisa del hallazgo",
+      "poblacion_afectada": ["grupo"],
+      "impacto_clinico": "alto|medio|bajo"
+    }}
+  ],
+  "gaps_criticos": {{
+    "microbiota": "NO DISPONIBLE",
+    "biomarcadores_moleculares": "descripcion o NO DISPONIBLE",
+    "metricas_estadisticas": "descripcion o NO DISPONIBLE"
+  }},
+  "metadata": {{
+    "nivel_evidencia": "epidemiologico|clinico|in_vitro|meta-analisis",
+    "tipo_estudio": "tipo detectado"
+  }}
+}}
+
+ABSTRACT: {abstract}
+
+Responde SOLO con JSON valido. Sin explicaciones. Sin markdown.
+"""
+
+
+def parse_json_response(raw_text: str) -> Dict[str, Any]:
+    raw_text = raw_text.strip()
+    try:
+        return json.loads(raw_text)
+    except json.JSONDecodeError:
+        match = re.search(r"\{[\s\S]*\}", raw_text)
+        if not match:
+            return {"results": []}
+        try:
+            return json.loads(match.group(0))
+        except json.JSONDecodeError:
+            return {"results": []}
+
+
+def _safe_list(value: Any) -> List[str]:
+    if isinstance(value, list):
+        return [str(x).strip() for x in value if str(x).strip()]
+    elif value:
+        return [str(value).strip()]
+    return []
+
+
+def _safe_string(value: Any) -> str:
+    """Converteix qualsevol valor a string de forma segura."""
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
+def _safe_list(value: Any) -> List[str]:
+    """Converteix qualsevol valor a llista de strings de forma segura."""
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, str) and value.strip():
+        return [value.strip()]
+    return []
+
+
+def _safe_float(value: Any) -> float:
+    """Converteix qualsevol valor a float de forma segura."""
+    if value is None:
+        return None
+    try:
+        if isinstance(value, str):
+            # Netejar strings amb percentatges o altres caràcters
+            cleaned = value.replace('%', '').replace(',', '.').strip()
+            if not cleaned:
+                return None
+            return float(cleaned)
+        return float(value)
+    except (ValueError, TypeError):
+        return None
+
+
+def _safe_float_absolute(value: Any) -> float:
+    """Para números absolutos grandes con coma de miles (517,900 → 517900.0)"""
+    if value is None:
+        return None
+    try:
+        if isinstance(value, str):
+            # Eliminar comas de miles ANTES de convertir
+            cleaned = value.replace(',', '').replace('%', '').strip()
+            if not cleaned:
+                return None
+            return float(cleaned)
+        return float(value)
+    except (ValueError, TypeError):
+        return None
+
+
+def _safe_int(value: Any) -> int:
+    """Converteix qualsevol valor a int de forma segura."""
+    if value is None:
+        return None
+    try:
+        if isinstance(value, str):
+            cleaned = value.replace(',', '').strip()
+            if not cleaned:
+                return None
+            return int(float(cleaned))  # Primer a float per gestionar decimals
+        return int(float(value))
+    except (ValueError, TypeError):
+        return None
+
+
+def validate_biomedical_coherence(text: str) -> Tuple[bool, str]:
+    content = (text or "").strip()
+    if not content or len(content) < 30:
+        return False, "Dato No Fiable: texto insuficiente para análisis."
+
+    # Filtro relajado: solo bloquea basura real, no abstracts científicos legítimos
+    garbage_patterns = [
+        r"^[^a-zA-Z]*$",  # Solo números/símbolos
+        r"\b(fuck|shit|damn|idiot|stupid)\b",  # Insultos obvios
+        r"^(hola|hello|hi|test|prueba)[\s\.,!]*$",  # Saludos simples
+        r"^\d+[\s\+\-\*\/\=\(\)]*\d*$",  # Solo operaciones matemáticas
+    ]
+    
+    for pattern in garbage_patterns:
+        if re.search(pattern, content, flags=re.IGNORECASE):
+            return False, "Dato No Fiable: contenido no válido para extracción científica."
+    
+    # Señales de estructura científica (muy permisivo)
+    scientific_signals = [
+        r"\b(study|studies|research|analysis|patient|subjects?|method|result|conclusion)\b",
+        r"\b(p[\s-]?value|p[\s<>=]+\d|significant|correlation|association)\b",
+        r"\b(treatment|therapy|drug|medication|intervention|control|placebo)\b",
+        r"\b(protein|gene|biomarker|enzyme|hormone|antibody|receptor)\b",
+        r"\b(disease|syndrome|condition|disorder|pathology|diagnosis)\b",
+        r"\b(clinical|trial|cohort|randomized|double[\s-]?blind|prospective)\b",
+        r"\b(abstract|background|objective|methods?|results?|conclusions?)\b",
+    ]
+    
+    # Si tiene al menos UNA señal científica, lo acepta
+    for pattern in scientific_signals:
+        if re.search(pattern, content, flags=re.IGNORECASE):
+            return True, ""
+    
+    # Si no tiene señales científicas pero tampoco es basura obvia, lo acepta (muy permisivo)
+    if len(content) > 100:  # Textos largos probablemente son legítimos
+        return True, ""
+    
+    return False, "Dato No Fiable: contenido no identificable como texto científico."
+
+
+# ═══════════════════════════════════════════════════════
+# SISTEMA DE VALIDACIÓN BIOMÉDICA UNIVERSAL
+# Capa 1: Límites físicos absolutos
+# Capa 2: Coherencia semántica por tipo de métrica  
+# Capa 3: Coherencia interna entre métricas
+# ═══════════════════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════
+# PARSER DE CAMPO "otros"
+# Extrae pares (clave, valor) de strings como:
+# "NNT=0.8", "340 mg/dL", "95% CI 0.74-0.89", "58%"
+# Se ejecuta ANTES de cualquier validación
+# ═══════════════════════════════════════════════════════
+
+def parse_otros_field(otros_raw: str) -> Dict[str, Any]:
+    """
+    Extrae valores del campo 'otros' para los 6 invariantes matemáticos.
+    Solo CLAVE=VALOR numérico y CI bounds — sin concentraciones ni porcentajes sueltos.
+    """
+    if not isinstance(otros_raw, str) or not otros_raw:
+        return {}
+
+    extracted = {}
+
+    # Patrón 1 — CLAVE=VALOR numérico: "NNT=0.8", "HR=1.2"
+    for match in re.finditer(r'([A-Za-z][A-Za-z0-9_/\-]*)\s*=\s*(-?\d+(?:\.\d+)?)', otros_raw):
+        key = match.group(1).strip()
+        val = _safe_float(match.group(2))
+        if val is not None:
+            extracted[key] = val
+
+    # Patrón 2 — CI bounds: "CI 0.58-0.99", "95% CI 0.74-0.89"
+    ci_match = re.search(r'CI\s*[=:]?\s*(-?\d+(?:\.\d+)?)\s*[-–]\s*(-?\d+(?:\.\d+)?)', otros_raw, re.IGNORECASE)
+    if ci_match:
+        extracted["ci_lower"] = _safe_float(ci_match.group(1))
+        extracted["ci_upper"] = _safe_float(ci_match.group(2))
+
+    return extracted
+
+
+def enrich_metricas_from_otros(entidad: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Enriquece el dict de métricas con valores extraídos de 'otros'.
+    Modifica entidad in-place y retorna las métricas enriquecidas.
+    """
+    metricas = entidad.get("metricas", {})
+    if not isinstance(metricas, dict):
+        metricas = {}
+
+    otros_raw = metricas.get("otros", "")
+    parsed = parse_otros_field(str(otros_raw))
+
+    # Merge — solo añade claves que no existen ya en metricas
+    for key, val in parsed.items():
+        if key not in metricas:
+            metricas[f"otros_{key}"] = val
+
+    # Casos con nombre canónico conocido — normalizar
+    canonical_map = {
+        "NNT": "NNT",
+        "nnt": "NNT",
+        "ci_lower": "ci_lower",
+        "ci_upper": "ci_upper",
+    }
+    for src, dst in canonical_map.items():
+        if src in parsed and dst not in metricas:
+            metricas[dst] = parsed[src]
+
+    # Normalizar NNT a clave canónica siempre
+    for key in list(metricas.keys()):
+        if "NNT" in key.upper() and key != "NNT":
+            val = _safe_float(metricas[key])
+            if val is not None:
+                metricas["NNT"] = val
+                break
+
+    entidad["metricas"] = metricas
+    return metricas
+
+
+def validate_physical_limits_hierarchical(entidad: Dict[str, Any]) -> List[str]:
+    """
+    Valida los 6 invariantes matemáticos universales.
+    Solo errores físicos absolutos — matemáticamente imposibles en cualquier contexto.
+    """
+    errors = []
+    metricas = entidad.get("metricas", {})
+    if not isinstance(metricas, dict):
+        return errors
+
+    nombre = entidad.get("nombre", "DESCONOCIDO")
+
+    # Extraer ci_lower/ci_upper si no existen — buscar en metricas_completas y fragmento_fuente
+    if _safe_float(metricas.get("ci_lower")) is None or _safe_float(metricas.get("ci_upper")) is None:
+        patron_ci = re.compile(
+            r'CI\s*[=:]?\s*(\d+\.?\d*)\s*[-–]\s*(\d+\.?\d*)',
+            re.IGNORECASE
+        )
+        for texto in [
+            str(entidad.get("metricas_completas", "")),
+            str(entidad.get("fragmento_fuente", "")),
+        ]:
+            if not texto:
+                continue
+            m = patron_ci.search(texto)
+            if m:
+                lower_val = _safe_float(m.group(1))
+                upper_val = _safe_float(m.group(2))
+                if lower_val is not None and upper_val is not None:
+                    if metricas.get("ci_lower") is None or _safe_float(metricas.get("ci_lower")) is None:
+                        metricas["ci_lower"] = lower_val
+                    if metricas.get("ci_upper") is None or _safe_float(metricas.get("ci_upper")) is None:
+                        metricas["ci_upper"] = upper_val
+                    break
+
+    # 1. p-value fuera de [0.0, 1.0]
+    p = _safe_float(metricas.get("p_value"))
+    if p is not None and (p < 0.0 or p > 1.0):
+        errors.append(
+            f"Anomalía matemática: p-value={p} fuera de [0, 1] para '{nombre}' — imposible"
+        )
+        metricas["p_value"] = None
+
+    # 2. HR <= 0
+    hr = _safe_float(metricas.get("HR"))
+    if hr is not None and hr <= 0:
+        errors.append(
+            f"Anomalía matemática: HR={hr} ≤ 0 para '{nombre}' — Hazard Ratio siempre positivo"
+        )
+        metricas["HR"] = None
+
+    # 3. OR <= 0
+    or_val = _safe_float(metricas.get("OR"))
+    if or_val is not None and or_val <= 0:
+        errors.append(
+            f"Anomalía matemática: OR={or_val} ≤ 0 para '{nombre}' — Odds Ratio siempre positivo"
+        )
+        metricas["OR"] = None
+
+    # 4. NNT < 1.0
+    nnt = _safe_float(metricas.get("NNT"))
+    if nnt is not None and nnt < 1.0:
+        errors.append(
+            f"Anomalía matemática: NNT={nnt} < 1 para '{nombre}' — NNT mínimo teórico es 1"
+        )
+        metricas["NNT"] = None
+
+    # 5. IC invertido: ci_lower >= ci_upper
+    ci_lower = _safe_float(metricas.get("ci_lower"))
+    ci_upper = _safe_float(metricas.get("ci_upper"))
+    if ci_lower is not None and ci_upper is not None and ci_lower >= ci_upper:
+        errors.append(
+            f"Anomalía matemática: IC=[{ci_lower}, {ci_upper}] invertido para '{nombre}' — imposible"
+        )
+        metricas["ci_lower"] = None
+        metricas["ci_upper"] = None
+
+    # 6. HR fuera de su propio IC
+    if ci_lower is not None and ci_upper is not None and hr is not None:
+        if hr < ci_lower or hr > ci_upper:
+            errors.append(
+                f"Anomalía matemática: HR={hr} fuera de su IC=[{ci_lower}, {ci_upper}] para '{nombre}'"
+            )
+
+    entidad["metricas"] = metricas
+    return errors
+
+
+def generate_signals_from_errors(
+    entidades: List[Dict[str, Any]],
+    validation_errors: List[str]
+) -> List[Dict[str, Any]]:
+    """
+    Genera señales automáticas solo para entidades con riesgo_omision="CRÍTICO".
+    Usa la descripción exacta del invariante violado desde validation_errors.
+    """
+    signals = []
+
+    for entidad in entidades:
+        if _safe_string(entidad.get("riesgo_omision", "")) != "CRÍTICO":
+            continue
+
+        nombre = entidad.get("nombre", "DESCONOCIDO")
+        poblacion = entidad.get("poblacion_afectada", [])
+
+        # Buscar el error de validación que corresponde a esta entidad
+        for err in validation_errors:
+            if nombre in err or f"'{nombre}'" in err:
+                descripcion = err
+                signals.append({
+                    "tipo": "paradoja",
+                    "descripcion": descripcion,
+                    "poblacion_afectada": str(poblacion),
+                    "impacto_clinico": "alto",
+                    "origen": "validador_automatico"
+                })
+                break
+
+    return signals
+
+
+def merge_signals(
+    signals_gemini: List[Dict],
+    signals_validator: List[Dict]
+) -> List[Dict]:
+    """
+    Combina señales de Gemini con señales del validador.
+    Las señales del validador van PRIMERO — son deterministas.
+    Elimina duplicados semánticos obvios.
+    """
+    # Señales del validador primero
+    merged = list(signals_validator)
+
+    # Añadir señales de Gemini que no estén ya cubiertas
+    validator_keywords = set()
+    for s in signals_validator:
+        desc = s.get("descripcion", "").lower()
+        # Extraer keywords de la descripción para dedup semántico
+        for word in ["nnt", "hr=", "or=", "p-value", "ic", "protocolo", "centrifug", "temperatura"]:
+            if word in desc:
+                validator_keywords.add(word)
+
+    for signal in signals_gemini:
+        desc = signal.get("descripcion", "").lower()
+        # Solo añadir si no es redundante con una señal del validador
+        is_duplicate = any(kw in desc for kw in validator_keywords)
+        if not is_duplicate:
+            merged.append(signal)
+
+    return merged
+
+
+def coerce_payload(data: Dict[str, Any], abstract_text: str = "") -> Dict[str, Any]:
+    """Procesa y valida el payload JSON jerárquico de alta densidad."""
+    if not data:
+        return {
+            "metadata": {},
+            "entidades_de_riesgo": [],
+            "señales_prioritarias": [],
+            "gaps_criticos": {},
+            "validacion_alertas": []
+        }
+    
+    validation_errors = []
+    
+    # Procesar metadata
+    metadata = data.get("metadata", {})
+    processed_metadata = {
+        "doi": _safe_string(metadata.get("doi")),
+        "fuente": _safe_string(metadata.get("fuente")),
+        "nivel_evidencia": _safe_string(metadata.get("nivel_evidencia", "desconocido")),
+        "periodo_datos": _safe_string(metadata.get("periodo_datos")),
+        "tipo_estudio": _safe_string(metadata.get("tipo_estudio"))
+    }
+    
+    # Procesar entidades de riesgo con exhaustividad (con fallback para compatibilidad)
+    entidades = data.get("entidades_de_riesgo") or data.get("entitats_de_risc", [])
+    processed_entidades = []
+    
+    for entidad in entidades if isinstance(entidades, list) else []:
+        if not isinstance(entidad, dict):
+            continue
+            
+        nombre = (entidad.get("nombre") or entidad.get("nom") or "").strip()
+        if not nombre:
+            continue
+            
+        # Procesar métricas de la entidad
+        metricas = entidad.get("metricas") or entidad.get("metriques") or {}
+        processed_metricas = {}
+        
+        if isinstance(metricas, dict):
+            # Procesar métricas estándar
+            NUMERIC_KEYS = {
+                "HR", "OR", "p_value", "LFC", "IC95", "NNT",
+                "ci_lower", "ci_upper",
+                "incidencia_anual_pct", "mortalidad_pct",
+                "tasa_100k", "reduccion_mortalidad_pct",
+                "diagnostico_estadio_pct", "n_absoluto"
+            }
+
+            for key, value in metricas.items():
+                if key == "n_absoluto":
+                    processed_metricas[key] = _safe_float_absolute(value)
+                elif key in NUMERIC_KEYS:
+                    processed_metricas[key] = _safe_float(value)
+                elif key == "otros":
+                    # Intentar extraer números de strings como "38% higher"
+                    if isinstance(value, str) and value:
+                        nums = re.findall(r'-?\d+(?:\.\d+)?', value)
+                        if nums:
+                            processed_metricas[key] = value  # guardar string original
+                        else:
+                            processed_metricas[key] = _safe_string(value)
+                    else:
+                        processed_metricas[key] = _safe_string(value)
+                elif key == "otros" and isinstance(value, dict):
+                    # Procesar sub-métricas en "otros" - ahora también numéricas si corresponde
+                    for sub_key, sub_value in value.items():
+                        # Validación semántica para evitar errores como "517.900 muertes" → "517.9% mortalidad"
+                        if sub_key in ["muertes_evitadas", "muertes", "deaths", "casos", "pacientes"]:
+                            # Estas son cantidades absolutas, no porcentajes
+                            processed_metricas[sub_key] = _safe_float(sub_value)
+                        elif sub_key in ["mortalidad", "supervivencia", "incidencia", "incidencia_anual",
+                                        "tasa_100k", "tasa_por_100k", "aumento_anual", "reduccion_mortalidad"]:
+                            # Estas son tasas/porcentajes - validar rango
+                            val = _safe_float(sub_value)
+                            if val is not None and val > 100 and sub_key in ["mortalidad", "supervivencia", "incidencia_anual"]:
+                                # Probable error: número absoluto interpretado como porcentaje
+                                processed_metricas[f"{sub_key}_absoluto"] = val
+                            else:
+                                processed_metricas[sub_key] = val
+                        else:
+                            processed_metricas[sub_key] = _safe_string(sub_value)
+                else:
+                    processed_metricas[key] = _safe_string(value)
+        
+        processed_entidad = {
+            "nombre": nombre,
+            "tipo": _safe_string(entidad.get("tipo", "desconocido")),
+            "resolucion": _safe_string(entidad.get("resolucion", "literal")),
+            "biomarcadores_implicitos": _safe_list(entidad.get("biomarcadores_implicitos", [])),
+            "es_literal": "true",  # Por defecto literal
+            "metricas": processed_metricas,
+            "poblacion_afectada": _safe_list(entidad.get("poblacion_afectada", [])),
+            "relacion_causal": _safe_string(entidad.get("relacion_causal", "correlacional")),
+            "calificador_original": _safe_string(entidad.get("cualificador_original") or entidad.get("calificador_original", "")),
+            "estado_validacion": "OK",  # Por defecto OK
+            "riesgo_omision": "Aceptable",  # Por defecto aceptable
+            "nivel_evidencia": _safe_string(entidad.get("nivel_evidencia", "epidemiologico")),
+            "fragmento_fuente": _safe_string(entidad.get("fragmento_fuente", ""))
+        }
+        
+        # Enriquecer desde campo otros
+        enrich_metricas_from_otros(processed_entidad)
+
+        # Validación — solo 6 invariantes matemáticos universales
+        layer1_errors = validate_physical_limits_hierarchical(processed_entidad)
+
+        if layer1_errors:
+            processed_entidad["riesgo_omision"] = "CRÍTICO"
+            processed_entidad["estado_validacion"] = "🚨"
+
+        validation_errors.extend(layer1_errors)
+        processed_entidades.append(processed_entidad)
+    
+    # Procesar señales prioritarias (con fallback)
+    señales = data.get("señales_prioritarias") or data.get("senyals_prioritaries", [])
+    processed_señales = []
+    
+    for señal in señales if isinstance(señales, list) else []:
+        if isinstance(señal, dict):
+            processed_señal = {
+                "tipo": _safe_string(señal.get("tipo", "desconocido")),
+                "descripcion": _safe_string(señal.get("descripcion", "")),
+                "poblacion_afectada": _safe_string(señal.get("poblacion_afectada", "")),
+                "impacto_clinico": _safe_string(señal.get("impacto_clinico", "desconocido"))
+            }
+            processed_señales.append(processed_señal)
+
+    # Generar señales desde errores del validador
+    signals_from_validator = generate_signals_from_errors(
+        processed_entidades,
+        validation_errors
+    )
+
+    # Merge — validador primero (deterministas), luego Gemini (sin duplicados)
+    processed_señales = merge_signals(processed_señales, signals_from_validator)
+    
+    # Procesar gaps críticos (con fallback)
+    gaps = data.get("gaps_criticos") or data.get("gaps_critics", {})
+    processed_gaps = {
+        "microbiota": _safe_string(gaps.get("microbiota", "NO DISPONIBLE")),
+        "biomarcadores_moleculares": _safe_string(gaps.get("biomarcadores_moleculares", "NO DISPONIBLE")),
+        "metricas_estadisticas": _safe_string(gaps.get("metricas_estadisticas", "NO DISPONIBLE")),
+        "datos_genomicos": _safe_string(gaps.get("datos_genomicos", "NO DISPONIBLE")),
+        "interacciones_farmacologicas": _safe_string(gaps.get("interacciones_farmacologicas", "NO DISPONIBLE"))
+    }
+    
+    return {
+        "metadata": processed_metadata,
+        "entidades_de_riesgo": processed_entidades,
+        "señales_prioritarias": processed_señales,
+        "gaps_criticos": processed_gaps,
+        "validacion_alertas": validation_errors
+    }
+
+
+def analyze_orphan_data(abstract: str, extracted_results: List[Dict[str, Any]], auditoria: Dict[str, Any]) -> List[str]:
+    """Auditoria de literalitat intel·ligent: detecta mètriques perdudes sense inventar biomarcadors"""
+    import re
+    
+    orphan_alerts = []
+    
+    # Detectar mètriques numèriques no capturades
+    numeric_pattern = r'\b\d+(?:\.\d+)?%?\b'
+    found_numbers = set(re.findall(numeric_pattern, abstract))
+    captured_numbers = set()
+    
+    for result in extracted_results:
+        metricas = result.get("metricas", {})
+        for key, value in metricas.items():
+            if value is not None:
+                captured_numbers.add(str(value))
+    
+    # Filtrar números massa petits o anys
+    relevant_numbers = {n for n in found_numbers 
+                       if len(n) > 1 and not n.startswith("0") 
+                       and not (n.isdigit() and 1900 <= int(n) <= 2030)}
+    
+    uncaptured_numbers = relevant_numbers - captured_numbers
+    if len(uncaptured_numbers) > 3:
+        orphan_alerts.append(f"Mètriques numèriques no associades: {', '.join(list(uncaptured_numbers)[:6])}")
+    
+    # Detectar subtipus moleculars mencionats però no capturats
+    text_lower = abstract.lower()
+    molecular_subtypes = [
+        "hormone receptor-positive", "hormone receptor positive", "hr-positive",
+        "triple-negative", "triple negative", "tnbc",
+        "her2-positive", "her2 positive", "her2-negative",
+        "luminal a", "luminal b", "basal-like"
+    ]
+    
+    found_subtypes = [subtype for subtype in molecular_subtypes if subtype in text_lower]
+    captured_biomarcadores = [result.get("biomarcador", "").lower() for result in extracted_results]
+    
+    missing_subtypes = []
+    for subtype in found_subtypes:
+        if not any(subtype in captured for captured in captured_biomarcadores):
+            missing_subtypes.append(subtype)
+    
+    if missing_subtypes:
+        orphan_alerts.append(f"Subtipus moleculars no capturats: {', '.join(missing_subtypes)}")
+    
+    # Verificar cobertura adequada sense ser excessiu
+    text_length = len(abstract.split())
+    num_results = len(extracted_results)
+    
+    # Per abstracts epidemiològics, esperem menys registres que per abstracts moleculars
+    if text_length > 200 and num_results == 0:
+        orphan_alerts.append("POSSIBLE SUBEXTRACCIÓ: Text llarg sense biomarcadors capturats")
+    
+    return orphan_alerts
+
+
+def analyze_hierarchical_density(abstract: str, entidades: List[Dict[str, Any]], gaps: Dict[str, Any]) -> List[str]:
+    """Analiza la densidad de información y detecta posibles omisiones en la extracción jerárquica."""
+    import re
+    
+    density_alerts = []
+    abstract_length = len(abstract.split())
+    
+    # Detectar números decimales no capturados
+    decimal_pattern = r'\b\d+\.\d+\b'
+    decimals_in_text = re.findall(decimal_pattern, abstract)
+    
+    # Detectar percentatges no capturats
+    percentage_pattern = r'\b\d+(?:\.\d+)?%\b'
+    percentages_in_text = re.findall(percentage_pattern, abstract)
+    
+    # Verificar si hi ha mètriques perdudes
+    captured_metrics = []
+    for entidad in entidades:
+        metricas = entidad.get("metricas", {})
+        for key, value in metricas.items():
+            if value is not None:
+                captured_metrics.append(str(value))
+    
+    uncaptured_decimals = [d for d in decimals_in_text if d not in captured_metrics]
+    uncaptured_percentages = [p for p in percentages_in_text if p.replace('%', '') not in captured_metrics]
+    
+    if len(uncaptured_decimals) > 2:
+        density_alerts.append(f"ALERTA DENSITAT: {len(uncaptured_decimals)} números decimals no capturats: {', '.join(uncaptured_decimals[:3])}...")
+    
+    if len(uncaptured_percentages) > 1:
+        density_alerts.append(f"ALERTA DENSITAT: {len(uncaptured_percentages)} percentatges no capturats: {', '.join(uncaptured_percentages[:2])}...")
+    
+    # Detectar possibles biomarcadors perduts
+    biomarker_patterns = [
+        r'\b[A-Z]{2,}\d*\b',  # Patró típic de biomarcadors (ex: ER, PR, HER2)
+        r'\b\w+\s+receptor\b',  # Receptors
+        r'\b\w+\s+protein\b',   # Proteïnes
+        r'\b\w+\s+gene\b'       # Gens
+    ]
+    
+    potential_biomarkers = set()
+    for pattern in biomarker_patterns:
+        matches = re.findall(pattern, abstract, re.IGNORECASE)
+        potential_biomarkers.update(matches)
+    
+    captured_entities = {e.get("nombre", "").lower() for e in entidades}
+    uncaptured_biomarkers = [b for b in potential_biomarkers if b.lower() not in captured_entities]
+    
+    if len(uncaptured_biomarkers) > 0:
+        density_alerts.append(f"POSSIBLE SUBEXTRACCIÓ: Entitats potencials no capturades: {', '.join(list(uncaptured_biomarkers)[:3])}")
+    
+    # Alertes de densitat global
+    if abstract_length > 200 and len(entidades) == 0:
+        density_alerts.append("ALERTA CRÍTICA: Text llarg sense entitats capturades - Revisió manual obligatòria")
+    elif abstract_length > 100 and len(entidades) < 2:
+        density_alerts.append("ALERTA DENSITAT: Possible subextracció en text dens")
+    
+    return density_alerts
+
+
+def detect_study_type(metadata: Dict[str, Any]) -> str:
+    """Detecta el tipo de estudio desde metadata."""
+    nivel = _safe_string(metadata.get("nivel_evidencia","")).lower()
+    tipo  = _safe_string(metadata.get("tipo_estudio","")).lower()
+    texto = f"{nivel} {tipo}"
+
+    if any(k in texto for k in ["meta-analysis","systematic review"]):
+        return "meta_analisis"
+    if any(k in texto for k in ["randomized","rct","trial","placebo","double-blind","phase"]):
+        return "rct"
+    if any(k in texto for k in ["in vitro","in vivo","rna-seq","genomic","lfc","fold change"]):
+        return "molecular"
+    return "epidemiologico"
+
+
+def calculate_hierarchical_confidence(
+    entidades: List[Dict[str, Any]], 
+    señales: List[Dict[str, Any]], 
+    gaps: Dict[str, Any],
+    metadata: Dict[str, Any] = None
+) -> Tuple[int, str]:
+    """
+    Calcula confianza relativa al tipo de estudio.
+    Retorna (score, tipo_estudio_detectado)
+    """
+    metadata = metadata or {}
+    
+    # ── DETECTAR TIPO DE ESTUDIO ──────────────────────────────────────
+    nivel = _safe_string(metadata.get("nivel_evidencia", "")).lower()
+    tipo  = _safe_string(metadata.get("tipo_estudio", "")).lower()
+    
+    keywords_epidemiologico = ["epidemiolog", "estadistic", "statistic", "registry",
+                                "surveillance", "poblacional", "population"]
+    keywords_rct            = ["randomized", "rct", "trial", "placebo", "double-blind",
+                                "fase", "phase"]
+    keywords_molecular      = ["in vitro", "in vivo", "rna-seq", "proteom", "genomic",
+                                "cell line", "lfc", "fold change"]
+    keywords_meta           = ["meta-analysis", "systematic review", "meta-anàlisi",
+                                "revisió sistemàtica"]
+    
+    texto_eval = f"{nivel} {tipo}".lower()
+    
+    if any(k in texto_eval for k in keywords_meta):
+        estudio = "meta_analisis"
+    elif any(k in texto_eval for k in keywords_rct):
+        estudio = "rct"
+    elif any(k in texto_eval for k in keywords_molecular):
+        estudio = "molecular"
+    elif any(k in texto_eval for k in keywords_epidemiologico):
+        estudio = "epidemiologico"
+    elif nivel in ["epidemiologico", "revision"]:
+        estudio = "epidemiologico"
+    else:
+        estudio = "epidemiologico"  # fallback conservador
+    
+    # ── PARÁMETROS POR TIPO ───────────────────────────────────────────
+    config = {
+        "epidemiologico": {
+            "base": 50,              # ← era 65, bajamos base
+            "bonus_entidades": 10,   # ← era 15
+            "bonus_señales": 10,
+            "bonus_cobertura": 5,
+            "bonus_fragmentos": 5,
+            "bonus_metricas": 10,    # ← NUEVO: bonus si >50% entidades tienen métricas
+            "bonus_cualificadores": 5, # ← NUEVO: bonus si hay cualificadores causales
+            "umbral_critico": 50,
+            "umbral_excelencia": 80,
+        },
+        "rct": {
+            "base": 40,
+            "bonus_entidades": 10,
+            "bonus_señales": 10,
+            "bonus_cobertura": 5,
+            "bonus_fragmentos": 5,
+            "bonus_pvalue": 15,       # tiene p-values
+            "bonus_hr_or": 15,        # tiene HR o OR
+            "umbral_critico": 70,
+            "umbral_excelencia": 88,
+        },
+        "molecular": {
+            "base": 40,
+            "bonus_entidades": 10,
+            "bonus_señales": 10,
+            "bonus_cobertura": 5,
+            "bonus_fragmentos": 5,
+            "bonus_pvalue": 10,
+            "bonus_lfc": 20,          # tiene LFC — métrica core molecular
+            "umbral_critico": 65,
+            "umbral_excelencia": 85,
+        },
+        "meta_analisis": {
+            "base": 50,
+            "bonus_entidades": 10,
+            "bonus_señales": 15,
+            "bonus_cobertura": 5,
+            "bonus_fragmentos": 5,
+            "bonus_pvalue": 15,
+            "umbral_critico": 70,
+            "umbral_excelencia": 88,
+        },
+    }
+    
+    cfg = config.get(estudio, config["epidemiologico"])
+    score = cfg["base"]
+    
+    # ── BONIFICACIONES COMUNES ────────────────────────────────────────
+    if entidades:
+        score += cfg["bonus_entidades"]
+        
+        if len(entidades) > 5:
+            score += cfg.get("bonus_cobertura", 0)
+        
+        entidades_con_fragmento = sum(
+            1 for e in entidades if len(e.get("fragmento_fuente", "").strip()) > 15
+        )
+        if entidades_con_fragmento / len(entidades) > 0.7:
+            score += cfg.get("bonus_fragmentos", 0)
+    
+    if señales:
+        score += cfg.get("bonus_señales", 0)
+    
+    # Bonus métricas — solo si más del 50% de entidades tienen métricas reales
+    if entidades:
+        entidades_con_metricas = sum(
+            1 for e in entidades
+            if e.get("metricas") and any(
+                v is not None and v != "" and v != "NO DISPONIBLE"
+                for v in e["metricas"].values()
+            )
+        )
+        ratio_metricas = entidades_con_metricas / len(entidades)
+        if ratio_metricas > 0.5:
+            score += cfg.get("bonus_metricas", 0)
+        elif ratio_metricas > 0.25:
+            score += cfg.get("bonus_metricas", 0) // 2
+
+    # Bonus cualificadores causales — indica precisión en asignación
+    if entidades:
+        con_cualificador = sum(
+            1 for e in entidades
+            if e.get("cualificador_original", "").strip()
+        )
+        if con_cualificador / len(entidades) > 0.3:
+            score += cfg.get("bonus_cualificadores", 0)
+    
+    # ── BONIFICACIONES ESPECÍFICAS POR TIPO ──────────────────────────
+    tiene_pvalue = any(
+        e.get("metricas", {}).get("p_value") is not None
+        for e in entidades
+    )
+    tiene_hr_or = any(
+        e.get("metricas", {}).get("HR") is not None or
+        e.get("metricas", {}).get("OR") is not None
+        for e in entidades
+    )
+    tiene_lfc = any(
+        e.get("metricas", {}).get("LFC") is not None
+        for e in entidades
+    )
+    if estudio in ["rct", "molecular", "meta_analisis"]:
+        if tiene_pvalue:
+            score += cfg.get("bonus_pvalue", 0)
+        if tiene_hr_or:
+            score += cfg.get("bonus_hr_or", 0)
+        if tiene_lfc:
+            score += cfg.get("bonus_lfc", 0)
+    elif estudio == "epidemiologico" and (tiene_pvalue or tiene_hr_or):
+        score += cfg.get("bonus_metricas", 0)
+    
+    # Única penalización — errores matemáticos críticos
+    criticos = sum(
+        1 for e in entidades
+        if str(e.get("riesgo_omision", "")).upper() == "CRÍTICO"
+    )
+    if criticos >= 2:
+        score = min(score, 40)
+    elif criticos == 1:
+        score = min(score, 60)
+
+    score = min(max(score, 0), 100)
+    return score, estudio
+
+
+def calculate_confidence_level(extracted_results: List[Dict[str, Any]], auditoria: Dict[str, Any]) -> int:
+    """Calcula nivell de confiança segons estàndards de qualitat clínica (GCP/ICH)"""
+    if not extracted_results:
+        return 0
+    
+    confidence_factors = []
+    
+    # Factor 1: Validez estadística (p-values significativos)
+    significant_p_values = sum(1 for result in extracted_results 
+                              if result.get("metricas", {}).get("p_value") is not None 
+                              and _safe_float(result.get("metricas", {}).get("p_value")) is not None
+                              and _safe_float(result.get("metricas", {}).get("p_value")) < 0.05)
+    total_p_values = sum(1 for result in extracted_results 
+                        if result.get("metricas", {}).get("p_value") is not None)
+    
+    if total_p_values > 0:
+        significance_ratio = significant_p_values / total_p_values
+        confidence_factors.append(int(60 + (significance_ratio * 40)))  # 60-100% segons significància
+    else:
+        confidence_factors.append(50)  # Base mitjana sense p-values
+    
+    # Factor 2: Qualitat de trazabilitat (fragments font detallats)
+    detailed_fragments = sum(1 for result in extracted_results 
+                            if len(result.get("fragmento_fuente", "")) > 30)
+    fragment_quality = detailed_fragments / len(extracted_results) if extracted_results else 0
+    confidence_factors.append(int(50 + (fragment_quality * 50)))  # 50-100% segons qualitat
+    
+    # Factor 3: Biomarcadors clínicament validats
+    validated_biomarkers = sum(1 for result in extracted_results 
+                              if result.get("tipo_biomarcador") in ["receptor", "proteina", "gen"])
+    validation_ratio = validated_biomarkers / len(extracted_results) if extracted_results else 0
+    confidence_factors.append(int(40 + (validation_ratio * 60)))  # 40-100% segons validació
+    
+    # Factor 4: Consistència de l'auditoria
+    riesgo = auditoria.get("riesgo_omision", "bajo")
+    if riesgo == "bajo":
+        confidence_factors.append(95)  # Alta confiança
+    elif riesgo == "medio":
+        confidence_factors.append(75)  # Confiança mitjana
+    else:  # alto
+        confidence_factors.append(40)  # Baixa confiança - revisió necessària
+    
+    # Factor 5: Penalització per errors de validació
+    validation_errors = len(auditoria.get("validacion_alertas", []))
+    if validation_errors == 0:
+        confidence_factors.append(100)
+    elif validation_errors <= 2:
+        confidence_factors.append(80)
+    else:
+        confidence_factors.append(50)  # Molts errors redueixen confiança
+    
+    final_confidence = int(sum(confidence_factors) / len(confidence_factors))
+    
+    # ESTÀNDARD CLÍNIC: Confiança < 85% requereix revisió manual
+    if final_confidence < 85:
+        final_confidence = min(final_confidence, 84)  # Cap per sota del llindar clínic
+    
+    return final_confidence
+
+
+def validate_with_ai(abstract: str, extracted_entities: List[Dict], api_key: str) -> Dict:
+    """
+    Segunda llamada a Gemini exclusivamente para validación científica.
+    No extrae — solo evalúa coherencia del abstract y de lo extraído.
+    """
+    genai.configure(api_key=api_key)
+
+    entities_summary = json.dumps([
+        {
+            "nombre": e.get("nombre"),
+            "metricas": e.get("metricas", {}),
+            "fragmento": e.get("fragmento_fuente", "")
+        }
+        for e in extracted_entities
+    ], ensure_ascii=False)
+
+    prompt = f"""
+Eres un bioestadístico y revisor científico senior con 20 años
+de experiencia revisando manuscripts para Nature Medicine y NEJM.
+
+Tienes dos tareas:
+
+TAREA 1 — VALIDACIÓN CIENTÍFICA
+Analiza el abstract y detecta cualquier problema real.
+No inventes errores. Solo reporta lo que claramente es incorrecto.
+
+Categorías a evaluar:
+
+A) ERRORES FÍSICOS — matemáticamente imposibles en cualquier contexto:
+   - p-value fuera de [0, 1]
+   - HR, OR, RR negativos o igual a cero
+   - Probabilidades fuera de [0, 100%]
+   - Intervalos de confianza donde lower > upper
+
+B) ERRORES FISIOLÓGICOS — numéricamente posibles pero biológicamente
+   imposibles dado el contexto específico del abstract:
+   - Concentraciones séricas, tisulares o celulares fuera de rangos
+     descritos en la literatura para esa molécula y compartimento
+   - Dosis farmacológicas incompatibles con supervivencia
+   - Tasas biológicas imposibles (crecimiento, división, expresión)
+   Usa tu conocimiento biomédico general — no te limites a reglas fijas.
+
+C) INCOHERENCIAS INTERNAS — valores que se contradicen entre sí:
+   - HR/OR con efecto grande (< 0.7 o > 1.5) pero p-value > 0.05
+   - Resultados primarios y secundarios que apuntan en direcciones
+     opuestas sin explicación
+   - Intervalos de confianza que no incluyen el valor nulo pero
+     p-value no significativo, o viceversa
+
+D) CONTAMINACIÓN DE DATOS — parámetros que no son métricas
+   clínicas del paciente sino condiciones de procesamiento:
+   - Temperaturas de almacenamiento o procesamiento de muestras
+   - Velocidades de centrifugación, tiempos de incubación
+   - Concentraciones de reactivos o buffers
+   - Condiciones instrumentales (absorbancia, voltaje, frecuencia)
+   - Cualquier parámetro que describa cómo se procesó la muestra,
+     no qué le ocurre al paciente o al tejido biológico
+   Sé exhaustivo — incluye cualquier valor que sea claramente
+   un parámetro técnico de laboratorio independientemente de cómo
+   esté formulado.
+
+TAREA 2 — VEREDICTO GLOBAL
+Basándote en lo encontrado, asigna un veredicto:
+   OPTIMA:       sin errores detectables
+   ACEPTABLE:    advertencias menores, datos usables con precaución
+   INCOHERENCIA: contradicciones estadísticas internas
+   NO_FIABLE:    errores físicos o fisiológicos que invalidan los datos
+
+ABSTRACT A EVALUAR:
+{abstract}
+
+MÉTRICAS EXTRAÍDAS:
+{entities_summary}
+
+Responde EXCLUSIVAMENTE en este JSON, sin texto adicional:
+{{
+  "tiene_errores": true|false,
+  "nivel_confianza_cientifico": 0-100,
+  "veredicto": "OPTIMA|ACEPTABLE|INCOHERENCIA|NO_FIABLE",
+  "errores": [
+    {{
+      "categoria": "FISICO|FISIOLOGICO|INCOHERENCIA|CONTAMINACION",
+      "entidad_afectada": "nombre exacto o descripción breve",
+      "descripcion": "descripción concisa y accionable del problema",
+      "gravedad": "CRITICO|ALTO|MEDIO|BAJO"
+    }}
+  ],
+  "resumen": "una frase que explica el veredicto al investigador"
+}}
+
+Si el abstract es correcto responde con:
+tiene_errores: false, veredicto: OPTIMA, errores: []
+"""
+
+    try:
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        response = model.generate_content(
+            prompt,
+            generation_config={"temperature": 0.0, "response_mime_type": "application/json"}
+        )
+        return json.loads(response.text)
+    except Exception:
+        return {
+            "tiene_errores": False,
+            "nivel_confianza_cientifico": 50,
+            "veredicto": "ACEPTABLE",
+            "errores": [],
+            "resumen": "Validación IA no disponible"
+        }
+
+
+def call_gemini_extract(abstract: str, api_key: str, model_preference: str = "Automático (recomendado)") -> Dict[str, Any]:
+    coherent, coherence_msg = validate_biomedical_coherence(abstract)
+    if not coherent:
+        raise ValueError(coherence_msg)
+
+    genai.configure(api_key=api_key)
+    
+    # Configurar models segons preferència
+    if model_preference == "Gemini 2.5 Flash":
+        model_candidates = ["gemini-2.5-flash"]
+    elif model_preference == "Gemini 1.5 Flash":
+        model_candidates = ["gemini-1.5-flash"]
+    else:  # Automàtic
+        model_candidates = ["gemini-2.5-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash"]
+    
+    response = None
+    last_error = None
+    for model_name in model_candidates:
+        try:
+            model = genai.GenerativeModel(model_name)
+            response = model.generate_content(
+                build_prompt(abstract),
+                generation_config={"temperature": 0.0, "response_mime_type": "application/json"},
+            )
+            break
+        except Exception as exc:
+            last_error = exc
+            continue
+    if response is None:
+        raise ValueError(f"No ha estat possible invocar un model Gemini disponible: {last_error}")
+
+    raw_text = response.text if hasattr(response, "text") else ""
+    if not raw_text:
+        return {"entidades_de_riesgo": [], "validacion_alertas": ["No se ha recibido respuesta de Gemini"]}
+    
+    # DEBUG: Mostrar resposta bruta per diagnosticar
+    print(f"DEBUG - Resposta bruta de Gemini: {raw_text[:500]}...")
+    
+    parsed = parse_json_response(raw_text)
+    print(f"DEBUG - JSON parsejat: {parsed}")
+    
+    coerced = coerce_payload(parsed, abstract_text=abstract)
+
+    # Segunda llamada — validación científica universal
+    entidades_para_validar = coerced.get("entidades_de_riesgo", [])
+    validacion_ia = validate_with_ai(abstract, entidades_para_validar, api_key)
+
+    # Propagar veredicto de la IA al payload
+    coerced["validacion_cientifica"] = validacion_ia
+
+    # Marcar entidades con errores detectados por la IA
+    entidades_con_error = {
+        _safe_string(e.get("entidad_afectada", "")).lower().strip()
+        for e in validacion_ia.get("errores", [])
+        if e.get("gravedad") in ["CRITICO", "ALTO"]
+        and _safe_string(e.get("entidad_afectada", "")).strip()
+    }
+
+    for entidad in coerced.get("entidades_de_riesgo", []):
+        nombre = _safe_string(entidad.get("nombre", "")).lower()
+        if entidades_con_error and any(err in nombre or nombre in err for err in entidades_con_error):
+            entidad["riesgo_omision"] = "CRÍTICO"
+            entidad["estado_validacion"] = "🚨"
+
+    # Calcular tipo de estudio (para metadata)
+    entitats = coerced.get("entidades_de_riesgo", [])
+    senyals = coerced.get("señales_prioritarias", [])
+    gaps = coerced.get("gaps_criticos", {})
+    tipo_estudio = detect_study_type(coerced.get("metadata", {}))
+
+    # Confianza base desde Gemini
+    confianza_ia = validacion_ia.get("nivel_confianza_cientifico", 70)
+    confianza_ia = max(confianza_ia, 65)
+
+    # La única penalización es por errores matemáticos críticos
+    # detectados en entidades ya procesadas
+    criticos = sum(
+        1 for e in coerced.get("entidades_de_riesgo", [])
+        if str(e.get("riesgo_omision", "")).upper() == "CRÍTICO"
+    )
+
+    if criticos >= 2:
+        nivel_confianza_final = min(confianza_ia, 40)
+    elif criticos == 1:
+        nivel_confianza_final = min(confianza_ia, 60)
+    else:
+        nivel_confianza_final = confianza_ia
+
+    coerced["nivel_confianza"] = nivel_confianza_final
+    coerced["tipo_estudio_detectado"] = tipo_estudio
+
+    # Analizar densidad de información
+    orphan_alerts = analyze_hierarchical_density(abstract, entitats, gaps)
+    coerced["alertas_densidad"] = orphan_alerts
+
+    return coerced
+
+
+def normalize_results_hierarchical(
+    processed_data: Dict[str, Any], source_id: str, source_index: int
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    """Normaliza las entidades de riesgo según el nuevo protocolo biomédico."""
+    rows: List[Dict[str, Any]] = []
+    
+    # Verificar si hay error de coherencia
+    if "error" in processed_data:
+        return [], {
+            "error": processed_data.get("error"),
+            "motiu": processed_data.get("motiu"),
+            "total_entitats": 0
+        }
+    
+    entitats = processed_data.get("entidades_de_riesgo", [])
+    metadata = processed_data.get("metadata", {})
+    senyals = processed_data.get("señales_prioritarias", [])
+    gaps = processed_data.get("gaps_criticos", {})
+    resum = processed_data.get("resumen_ejecutivo", {})
+    
+    for entitat in entitats:
+        nom = entitat.get("nombre", "")
+        tipus = entitat.get("tipo", "desconocido")
+        resolucio = entitat.get("resolucion", "literal")
+        biomarcadors_implicits = entitat.get("biomarcadores_implicitos", [])
+        metriques = entitat.get("metricas", {})
+        poblacio = entitat.get("poblacion_afectada", [])
+        relacio = entitat.get("relacion_causal", "no_especificado")
+        qualificador = entitat.get("calificador_original", "")
+        fragmento = entitat.get("fragmento_fuente", "")
+        
+        # Determinar estado según el nuevo protocolo
+        p_value = metriques.get("p_value")
+        estat_validacio = entitat.get("estado_validacion", "⚠️")
+        
+        # Convertir p_value a float si es necesario
+        try:
+            p_value_num = float(p_value) if p_value is not None else None
+        except (ValueError, TypeError):
+            p_value_num = None
+        
+        if p_value_num is not None and p_value_num < 0.05:
+            estado = "🔥"  # Alta prioridad estadística
+        elif resolucio == "agregado_clinico" and biomarcadors_implicits:
+            estado = "🧬"  # Entidad con biomarcadores implícitos
+        elif len(fragmento.strip()) > 15 and estat_validacio == "OK":
+            estado = "✅"  # Verificado con fuente sólida
+        elif tipus == "demografico":
+            estado = "👥"  # Grupo demográfico
+        elif tipus == "epidemiologico":
+            estado = "📊"  # Dato epidemiológico
+        elif tipus == "molecular":
+            estado = "🧬"  # Biomarcador molecular
+        else:
+            estado = estat_validacio  # Usar el estado de validación de la IA
+            
+        # Construir métricas según nuevo esquema
+        metriques_display = []
+        
+        # Métricas estándar del nuevo esquema
+        if metriques.get("HR") is not None:
+            try:
+                metriques_display.append(f"HR={float(metriques['HR']):.2f}")
+            except (ValueError, TypeError):
+                metriques_display.append(f"HR={metriques['HR']}")
+        if metriques.get("OR") is not None:
+            try:
+                metriques_display.append(f"OR={float(metriques['OR']):.2f}")
+            except (ValueError, TypeError):
+                metriques_display.append(f"OR={metriques['OR']}")
+        if metriques.get("p_value") is not None:
+            try:
+                metriques_display.append(f"p={float(metriques['p_value']):.4f}")
+            except (ValueError, TypeError):
+                metriques_display.append(f"p={metriques['p_value']}")
+        if metriques.get("LFC") is not None:
+            try:
+                metriques_display.append(f"LFC={float(metriques['LFC']):.2f}")
+            except (ValueError, TypeError):
+                metriques_display.append(f"LFC={metriques['LFC']}")
+        if metriques.get("IC95"):
+            metriques_display.append(f"IC95={metriques['IC95']}")
+        if metriques.get("n_muestral") is not None:
+            try:
+                metriques_display.append(f"n={int(float(metriques['n_muestral']))}")
+            except (ValueError, TypeError):
+                metriques_display.append(f"n={metriques['n_muestral']}")
+        if metriques.get("n_absoluto") is not None:
+            val = metriques["n_absoluto"]
+            # Mostrar con formato de miles
+            try:
+                metriques_display.append(f"n={int(val):,}")
+            except (ValueError, TypeError):
+                metriques_display.append(f"n={val}")
+        
+        # Otras métricas (ya procesadas en coerce_payload)
+        for key, value in metriques.items():
+            if key not in ["HR", "OR", "p_value", "LFC", "IC95", "n_muestral"] and value and value != "NO DISPONIBLE":
+                # Formatear números si es posible, sino como string
+                if isinstance(value, (int, float)):
+                    if key in ["mortalidad_pct", "incidencia_anual_pct", "reduccion_mortalidad_pct", 
+                              "diagnostico_estadio_pct", "mortalidad", "supervivencia", "incidencia", 
+                              "incidencia_anual", "aumento_anual", "reduccion_mortalidad"]:
+                        metriques_display.append(f"{key}={value:.1f}%")
+                    elif key in ["tasa_100k", "tasa_por_100k", "tasa_2000_100k", "tasa_2021_100k"]:
+                        metriques_display.append(f"{key}={value:.1f}/100k")
+                    elif key in ["n_absoluto", "muertes_evitadas"]:
+                        # Formatear números grandes correctamente
+                        if value >= 1000:
+                            metriques_display.append(f"{key}={value:,.0f}")
+                        else:
+                            metriques_display.append(f"{key}={value}")
+                    else:
+                        metriques_display.append(f"{key}={value}")
+                else:
+                    # Para strings, verificar si contienen números que se pueden extraer
+                    import re
+                    if '%' in str(value):
+                        metriques_display.append(f"{key}={value}")
+                    elif 'per 100' in str(value) or '/100k' in str(value):
+                        metriques_display.append(f"{key}={value}")
+                    else:
+                        metriques_display.append(f"{key}={value}")
+        
+        metriques_str = " | ".join(metriques_display) if metriques_display else "NO DISPONIBLE"
+        poblacion_str = ", ".join(poblacio) if isinstance(poblacio, list) else ""
+        
+        # Biomarcadores implícitos como string
+        biomarcadors_str = ""
+        if biomarcadors_implicits:
+            bio_list = []
+            for bio in biomarcadors_implicits:
+                if isinstance(bio, dict):
+                    marcador = bio.get('marcador', '')
+                    estado = bio.get('estado', '')
+                    bio_list.append(f"{marcador} ({estado})")
+                elif isinstance(bio, str):
+                    bio_list.append(bio)
+            biomarcadors_str = "; ".join(bio_list)
+        
+        # Riesgo de omisión de la IA
+        risc_omissio = entitat.get("riesgo_omision", "Aceptable")
+            
+        rows.append({
+            "Estado": estado,
+            "ID_Abstract": source_id,
+            "Fila_Origen": source_index,
+            "Entidad": nom,
+            "Tipo": tipus,
+            "Resolución": resolucio,
+            "Biomarcadores Implícitos": biomarcadors_str,
+            "Población Afectada": poblacion_str,
+            "Relación Causal": relacio,
+            "Calificador": qualificador,
+            "Métricas": metriques_str,
+            "P-value": metriques.get("p_value") if metriques.get("p_value") is not None else "",
+            "Nivel evidencia": entitat.get("nivel_evidencia", metadata.get("nivel_evidencia", "desconocido")),
+            "Riesgo de Omisión": risc_omissio,
+            "Fragmento fuente": fragmento
+        })
+    
+    # Crear resum segons nou protocol
+    summary = {
+        "metadata": metadata,
+        "senyals_prioritaries": senyals,
+        "gaps_critics": gaps,
+        "resum_executiu": resum,
+        "total_entitats": len(entitats),
+        "entitats_literals": sum(
+            1 for e in entitats 
+            if (e.get("resolucion") or e.get("resolucio")) == "literal"
+        ),
+        "entitats_agregades": sum(
+            1 for e in entitats 
+            if (e.get("resolucion") or e.get("resolucio")) == "agregado_clinico"
+        ),
+        "entitats_epidemiologiques": sum(
+            1 for e in entitats 
+            if (e.get("resolucion") or e.get("resolucio")) == "epidemiologico"
+        )
+    }
+    
+    return rows, summary
+
+
+def normalize_results(
+    results: List[Dict[str, Any]], source_id: str, source_index: int, auditoria: Dict[str, Any] = None
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    auditoria = auditoria or {}
+    
+    for item in results:
+        microbiota = item.get("microbiota_relacionada", [])
+        microbiota_str = ", ".join(microbiota) if isinstance(microbiota, list) else ""
+        
+        poblacion = item.get("poblacion_estudiada", [])
+        poblacion_str = ", ".join(poblacion) if isinstance(poblacion, list) else ""
+        
+        entidades_nc = item.get("entidades_no_clasificadas", [])
+        entidades_str = ", ".join(entidades_nc) if isinstance(entidades_nc, list) else ""
+        
+        metricas = item.get("metricas", {}) or {}
+        
+        # Determinar estado amb auditoria de seguretat millorada
+        p_value = metricas.get("p_value")
+        fragmento = item.get("fragmento_fuente", "")
+        riesgo_omision = auditoria.get("riesgo_omision", "bajo")
+        
+        # Prioritat per biomarcadors implícits detectats
+        biomarcadors_implicits = auditoria.get("biomarcadores_implicitos", [])
+        es_implicit = any(item.get("biomarcador", "").lower() in bio.lower() for bio in biomarcadors_implicits)
+        
+        # Lógica de seguridad biológica mejorada
+        try:
+            p_value_num = float(p_value) if p_value is not None else None
+        except (ValueError, TypeError):
+            p_value_num = None
+            
+        if p_value_num is not None and p_value_num < 0.05:
+            estado = "🔥"  # Alta prioritat estadística
+        elif es_implicit:
+            estado = "🧬"  # Biomarcador implícit detectat
+        elif fragmento and len(fragmento.strip()) > 15 and riesgo_omision == "bajo":
+            estado = "✅"  # Verificat i segur
+        elif riesgo_omision == "alto":
+            estado = "🔍"  # Revisió manual requerida
+        else:
+            estado = "⚠️"  # Dubtós
+            
+        # Construir métriques concatenades adaptatives
+        metricas_display = []
+        
+        # Mètriques estadístiques
+        if metricas.get("p_value") is not None:
+            metricas_display.append(f"p={metricas['p_value']:.4f}")
+        if metricas.get("aor") is not None:
+            metricas_display.append(f"aOR={metricas['aor']:.2f}")
+        if metricas.get("or") is not None:
+            metricas_display.append(f"OR={metricas['or']:.2f}")
+        if metricas.get("hr") is not None:
+            metricas_display.append(f"HR={metricas['hr']:.2f}")
+        if metricas.get("rr") is not None:
+            metricas_display.append(f"RR={metricas['rr']:.2f}")
+        if metricas.get("ci_lower") is not None and metricas.get("ci_upper") is not None:
+            metricas_display.append(f"CI=[{metricas['ci_lower']:.2f}-{metricas['ci_upper']:.2f}]")
+        
+        # Mètriques moleculars
+        if metricas.get("lfc") is not None:
+            metricas_display.append(f"LFC={metricas['lfc']:.2f}")
+        if metricas.get("fold_change") is not None:
+            metricas_display.append(f"FC={metricas['fold_change']:.2f}")
+        if metricas.get("expresion_relativa") is not None:
+            metricas_display.append(f"ExpRel={metricas['expresion_relativa']:.2f}")
+        
+        # Mètriques epidemiològiques
+        if metricas.get("incidencia_anual") is not None:
+            metricas_display.append(f"Inc={metricas['incidencia_anual']:.1f}%")
+        if metricas.get("tasa_por_100k") is not None:
+            metricas_display.append(f"Tasa={metricas['tasa_por_100k']:.1f}/100k")
+        if metricas.get("mortalidad_reduccion") is not None:
+            metricas_display.append(f"MortRed={metricas['mortalidad_reduccion']:.1f}%")
+        if metricas.get("disparidad_racial") is not None:
+            metricas_display.append(f"DispRac={metricas['disparidad_racial']:.1f}%")
+        if metricas.get("porcentaje_diagnostico") is not None:
+            metricas_display.append(f"Diag={metricas['porcentaje_diagnostico']:.1f}%")
+        
+        # Mètriques de laboratori
+        if metricas.get("concentracion") is not None:
+            metricas_display.append(f"Conc={metricas['concentracion']:.2f}")
+        if metricas.get("sensibilidad") is not None:
+            metricas_display.append(f"Sens={metricas['sensibilidad']:.1f}%")
+        if metricas.get("especificidad") is not None:
+            metricas_display.append(f"Esp={metricas['especificidad']:.1f}%")
+        
+        # Altres mètriques
+        if metricas.get("otras_metricas"):
+            metricas_display.append(str(metricas["otras_metricas"]))
+        
+        metricas_str = " | ".join(metricas_display) if metricas_display else ""
+        
+        # Determinar risc d'omissió per fila
+        risc_omissio = "Revisió Manual Requerida" if riesgo_omision == "alto" else "Acceptable"
+            
+        rows.append(
+            {
+                "Estado": estado,
+                "ID_Abstract": source_id,
+                "Fila_Origen": source_index,
+                "Biomarcador": item.get("biomarcador", ""),
+                "Tipo": item.get("tipo_biomarcador", ""),
+                "Subtipo Molecular": item.get("subtipo_molecular", ""),
+                "Población Estudiada": poblacion_str,
+                "Posología/Dosis": item.get("posologia_dosis", ""),
+                "Tamaño Muestral (n)": item.get("tamano_muestral", ""),
+                "Entidades No Clasificadas": entidades_str,
+                "Efecto/Impacto": item.get("efecto_impacto", ""),
+                "Patología": item.get("patologia_contexto", ""),
+                "Microbiota relacionada": microbiota_str,
+                "Métricas": metricas_str,
+                "P-value": p_value,
+                "Nivel de evidencia": item.get("nivel_evidencia", ""),
+                "Riesgo de Omisión": risc_omissio,
+                "Fragmento fuente": fragmento,
+            }
+        )
+    
+    return rows, auditoria
+
+
+def load_file_data(uploaded_file) -> pd.DataFrame:
+    if uploaded_file is None:
+        return pd.DataFrame()
+    name = uploaded_file.name.lower()
+    if name.endswith(".csv"):
+        return pd.read_csv(uploaded_file)
+    if name.endswith(".xlsx") or name.endswith(".xls"):
+        return pd.read_excel(uploaded_file)
+    raise ValueError("Formato no soportado. Usa CSV o Excel.")
+
+
+# Inicializar contador de sesión
+if "demo_count" not in st.session_state:
+    st.session_state.demo_count = 0
+
+DEMO_LIMIT = 5
+
+
+# Resolver API key activa
+def resolve_api_key(user_input: str) -> tuple[str, bool]:
+    """
+    Retorna (api_key, es_demo).
+    es_demo=True significa que usa la key de secrets.
+    """
+    user_key = (user_input or "").strip()
+    if user_key:
+        return user_key, False
+    
+    # Intentar key de secrets (demo)
+    try:
+        secrets_key = st.secrets.get("GOOGLE_API_KEY", "").strip()
+        if secrets_key:
+            return secrets_key, True
+    except Exception:
+        pass
+    
+    # Intentar variable de entorno
+    env_key = os.getenv("GOOGLE_API_KEY", "").strip()
+    if env_key:
+        return env_key, True
+    
+    return "", False
+
+
+
+# Variables para KPI (inicializadas antes del if)
+processed_count = 0
+entity_count = 0
+total_alerts = 0
+confidence_level = 0
+
+# KPI BAR placeholder (se rellena al final con valores actuales)
+kpi_placeholder = st.empty()
+
+# ÁREA PRINCIPAL MÉDICA
+left_col, right_col = st.columns([1, 1.6], gap="medium")
+
+with left_col:
+    st.markdown('<div class="section-label">ABSTRACT INPUT</div>', unsafe_allow_html=True)
+    abstract_text = st.text_area(
+        "",
+        placeholder="Introducir abstract científico para análisis biomédico...",
+        height=380,
+        key="abstract_input"
+    )
+    progress_placeholder = st.empty()
+
+with right_col:
+    st.markdown('<div class="section-label">EXTRACTION RESULTS</div>', unsafe_allow_html=True)
+    table_placeholder = st.empty()
+    summary_placeholder = st.empty()
+    if not run_button:
+        table_placeholder.markdown(
+            '''
+            <div style="
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 380px;
+                color: #8896A5;
+                text-align: center;
+                border: 1px dashed #E2E8F0;
+                border-radius: 8px;
+                gap: 12px;
+                padding: 0 16px;
+            ">
+                <div style="font-size: 32px; opacity: 0.3;">⬡</div>
+                <div style="font-size: 13px; font-weight: 500;">
+                    Introduce un abstract y pulsa Ejecutar
+                </div>
+                <div style="font-size: 11px; color: #8896A5;">
+                    Los resultados aparecerán aquí
+                </div>
+            </div>
+            ''',
+            unsafe_allow_html=True,
+        )
+
+# Area inferior para controles adicionales
+download_placeholder = st.empty()
+json_placeholder = st.empty()
+
+if run_button:
+    api_key, es_demo = resolve_api_key(user_api_key)
+
+    if not api_key:
+        st.markdown('''
+        <div class="verdict-warning">
+            🔑 Introduce tu API key de Gemini para continuar, 
+            o despliega la app con tu propia key en secrets.
+            <a href="https://aistudio.google.com/app/apikey" 
+               target="_blank" 
+               style="color: #1A56DB; margin-left: 8px;">
+                Obtener key gratuita →
+            </a>
+        </div>
+        ''', unsafe_allow_html=True)
+        st.stop()
+
+    if es_demo and st.session_state.demo_count >= DEMO_LIMIT:
+        st.markdown(f'''
+        <div class="verdict-critical">
+            🔒 Has usado los {DEMO_LIMIT} análisis gratuitos 
+            de esta sesión. Introduce tu propia API key de 
+            Gemini para continuar sin límite.
+            <a href="https://aistudio.google.com/app/apikey" 
+               target="_blank"
+               style="color: #991B1B; margin-left: 8px; font-weight: 600;">
+                Obtener key gratuita en 2 minutos →
+            </a>
+        </div>
+        ''', unsafe_allow_html=True)
+        st.stop()
+
+    all_rows: List[Dict[str, Any]] = []
+    all_payloads: List[Dict[str, Any]] = []
+    errors: List[Tuple[int, str]] = []
+    sensor_alerts: List[Tuple[int, str]] = []
+
+    # Mapear preferencias de modelo
+    model_map = {"Auto": "Automático (recomendado)", "Gemini 2.5": "Gemini 2.5 Flash", "Gemini 1.5": "Gemini 1.5 Flash"}
+    model_pref = model_map.get(model_preference, "Automático (recomendado)")
+
+    if mode == "Individual":
+        current_abstract = abstract_text.strip()
+        if not current_abstract:
+            st.markdown('<div class="alert-warning">Texto de abstract requerido para el modo individual</div>', unsafe_allow_html=True)
+            st.stop()
+
+        progress_bar = progress_placeholder.progress(0, text="Analizando...")
+        try:
+            payload = call_gemini_extract(current_abstract, api_key, model_pref)
+            all_payloads.append({"ID_Abstract": "manual_1", "payload": payload})
+            
+            # Procesar alertas de validación y densidad
+            for alert in payload.get("validacion_alertas", []):
+                sensor_alerts.append((1, alert))
+            for alert in payload.get("alertas_densidad", []):
+                sensor_alerts.append((1, f"Alerta Densidad: {alert}"))
+            
+            # Normalizar resultados con estructura jerárquica
+            rows, summary = normalize_results_hierarchical(payload, "manual_1", 1)
+            all_rows.extend(rows)
+            progress_bar.progress(100, text="Completado")
+            
+            if es_demo:
+                st.session_state.demo_count += 1
+        except Exception as exc:
+            if "Dato No Fiable" in str(exc) or "contenido no" in str(exc):
+                coherence_reason = str(exc).split(":")[-1].strip() if ":" in str(exc) else str(exc)
+                st.markdown(
+                    f'<div class="alert-danger">🚫 Filtro de Coherencia: {coherence_reason}</div>',
+                    unsafe_allow_html=True,
+                )
+            errors.append((1, str(exc)))
+            progress_bar.progress(100, text="Error")
+
+    else:  # Modo Masivo
+        if uploaded_file is None or file_df.empty or not selected_column:
+            st.markdown('<div class="alert-warning">Archivo y columna requeridos para el modo masivo</div>', unsafe_allow_html=True)
+            st.stop()
+
+        abstracts_series = file_df[selected_column].dropna().astype(str)
+        abstracts_series = abstracts_series[abstracts_series.str.strip() != ""]
+        total = len(abstracts_series)
+
+        if total == 0:
+            st.markdown('<div class="alert-warning">Ningún abstract válido encontrado</div>', unsafe_allow_html=True)
+            st.stop()
+
+        progress_bar = progress_placeholder.progress(0, text=f"Procesando {total} abstracts...")
+
+        for idx, (row_idx, abstract) in enumerate(abstracts_series.items(), start=1):
+            percent = int(idx / total * 100)
+            progress_bar.progress(percent, text=f"Procesando {idx}/{total}")
+            source_id = f"file_{row_idx + 1}"
+            try:
+                payload = call_gemini_extract(abstract.strip(), api_key, model_pref)
+                all_payloads.append({"ID_Abstract": source_id, "payload": payload})
+                
+                # Procesar alertas de validación y densidad
+                for alert in payload.get("validacion_alertas", []):
+                    sensor_alerts.append((row_idx + 1, alert))
+                for alert in payload.get("alertas_densidad", []):
+                    sensor_alerts.append((row_idx + 1, f"Alerta Densidad: {alert}"))
+                
+                # Normalizar resultados con estructura jerárquica
+                rows, summary = normalize_results_hierarchical(payload, source_id, row_idx + 1)
+                all_rows.extend(rows)
+            except Exception as exc:
+                errors.append((row_idx + 1, str(exc)))
+                continue
+
+        progress_bar.progress(100, text="Procesamiento completado")
+        
+        if es_demo:
+            st.session_state.demo_count += len(all_payloads)
+
+    final_df = pd.DataFrame(all_rows)
+    processed_count = len(all_payloads)
+    error_count = len(errors)
+    sensor_error_count = len(sensor_alerts)
+    entity_count = len(final_df) if not final_df.empty else 0
+    
+    # Calcular confianza con Protocolo de Seguridad Biológica
+    verified_count = len(final_df[final_df["Estado"] == "✅"]) if not final_df.empty else 0
+    high_priority_count = len(final_df[final_df["Estado"] == "🔥"]) if not final_df.empty else 0
+    manual_review_count = len(final_df[final_df["Estado"] == "🔍"]) if not final_df.empty else 0
+    
+    # Nivel de confianza basado en calidad de p-values y auditoría
+    if all_payloads:
+        avg_confidence = sum(payload.get("payload", {}).get("nivel_confianza", 0) for payload in all_payloads) / len(all_payloads)
+        confidence_level = int(avg_confidence)
+    else:
+        confidence_level = 0
+    
+    total_alerts = error_count + sensor_error_count
+
+    if final_df.empty:
+        if error_count > 0:
+            # Mostrar razón específica del filtro
+            main_error = errors[0][1] if errors else "Error desconocido"
+            if "Dato No Fiable" in main_error or "contenido no" in main_error:
+                reason = main_error.split(":")[-1].strip() if ":" in main_error else main_error
+                table_placeholder.markdown(
+                    f'<div class="alert-danger">❌ Filtro de Coherencia Activado: {reason}</div>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                table_placeholder.markdown(
+                    f'<div class="alert-clinical alert-review">Error en extracción de biomarcadores: {main_error}</div>',
+                    unsafe_allow_html=True,
+                )
+        else:
+            table_placeholder.markdown(
+                '<div class="alert-clinical alert-acceptable">No se encontraron biomarcadores en los abstracts procesados</div>',
+                unsafe_allow_html=True,
+            )
+    else:
+        # Configurar tabla con códigos de colores semánticos
+        def highlight_cells(val):
+            if pd.isna(val):
+                return ""
+            # P-values significativos
+            if isinstance(val, (int, float)) and val < 0.05:
+                return "background-color: #E8F5E8; color: #2E7D32; font-weight: bold;"
+            return ""
+        
+        def highlight_status(val):
+            if val == "🔥":
+                return "background-color: #FFF3E0; color: #F57C00;"  # Amarillo para prioridad estadística
+            elif val == "🧬":
+                return "background-color: #E8EAF6; color: #3F51B5;"  # Violeta para biomarcador implícito
+            elif val == "✅":
+                return "background-color: #E8F5E8; color: #2E7D32;"  # Verde para fiable
+            elif val == "🔍":
+                return "background-color: #E1F5FE; color: #0277BD;"  # Azul para revisión manual
+            elif val == "⚠️":
+                return "background-color: #FFEBEE; color: #D32F2F;"  # Rojo para revisar
+            return ""
+        
+        def highlight_omission_risk(val):
+            if val == "Revisión Manual Requerida":
+                return "background-color: #FFEBEE; color: #D32F2F; font-weight: bold;"
+            return ""
+        
+        styled_df = (final_df.style
+                    .applymap(highlight_cells, subset=["P-value"])
+                    .applymap(highlight_status, subset=["Estado"])
+                    .applymap(highlight_omission_risk, subset=["Riesgo de Omisión"]))
+        table_placeholder.dataframe(styled_df, use_container_width=True, hide_index=True)
+        
+        # Veredicto según confianza_global y anomalías matemáticas
+        hay_criticos = any(
+            _safe_string(e.get("riesgo_omision", "")).upper() == "CRÍTICO"
+            for p in all_payloads for e in p.get("payload", {}).get("entidades_de_riesgo", [])
+        )
+
+        if hay_criticos:
+            st.markdown(
+                '<div class="verdict-critical">🚨 Anomalía matemática crítica detectada — '
+                'valores estadísticamente imposibles. Revisar antes de usar estos datos.</div>',
+                unsafe_allow_html=True
+            )
+        elif confidence_level < 60:
+            st.markdown(
+                '<div class="verdict-warning">🔍 Extracción incompleta — cobertura baja.</div>',
+                unsafe_allow_html=True
+            )
+        elif confidence_level < 85:
+            st.markdown(
+                '<div class="verdict-warning">⚠️ Extracción parcial — verificar en paper original.</div>',
+                unsafe_allow_html=True
+            )
+        else:
+            st.markdown(
+                '<div class="verdict-ok">✅ Extracción completa — métricas disponibles.</div>',
+                unsafe_allow_html=True
+            )
+
+    # Resumen compacto
+    summary_placeholder.markdown(
+        f"""
+        <div style="display: flex; gap: 8px; margin: 8px 0; font-size: 0.8rem;">
+            <span class="alert-success">✅ {entity_count} entitats</span>
+            <span class="alert-warning">⚠️ {error_count} errors</span>
+            <span class="alert-danger">🔍 {sensor_error_count} alertes físiques</span>
+            <span style="background: #E3F2FD; color: #1976D2; padding: 4px 8px;">🎯 {confidence_level}% confiança</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Controls de descàrrega i auditoria
+    if not final_df.empty:
+        csv_buffer = io.StringIO()
+        final_df.to_csv(csv_buffer, index=False)
+        download_placeholder.download_button(
+            "💾 Descargar CSV",
+            data=csv_buffer.getvalue(),
+            file_name="biomarcadores_extraidos.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+    else:
+        empty_csv = io.StringIO()
+        pd.DataFrame(
+            columns=[
+                "Estado", "ID_Abstract", "Fila_Origen", "Entidad", "Tipo",
+                "Resolución", "Biomarcadores Implícitos", "Población Afectada", "Relación Causal", 
+                "Calificador", "Métricas", "P-value", "Nivel evidencia", 
+                "Riesgo de Omisión", "Fragmento fuente",
+            ]
+        ).to_csv(empty_csv, index=False)
+        download_placeholder.download_button(
+            "💾 Descargar CSV (vacío)",
+            data=empty_csv.getvalue(),
+            file_name="biomarcadores_extraidos.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+
+    # JSON JERÁRQUICO DE ALTA DENSIDAD - SALIDA PRINCIPAL
+    st.markdown('<div class="section-label">STRUCTURED OUTPUT</div>', unsafe_allow_html=True)
+    
+    # Crear JSON jerárquico exhaustivo para laboratorio
+    if all_payloads:
+        hierarchical_json = {
+            "metadata": {
+                "abstracts_procesados": len(all_payloads),
+                "total_entidades": len(final_df) if not final_df.empty else 0,
+                "confianza_global": f"{confidence_level}%",
+                "timestamp": pd.Timestamp.now().isoformat(),
+                "tipo_extraccion": "Jerárquico de Alta Densidad"
+            },
+            "entidades_de_riesgo": [],
+            "señales_prioritarias": [],
+            "gaps_criticos": {},
+            "resumen_ejecutivo": {
+                "entidades_literales": 0,
+                "entidades_inferidas": 0,
+                "entidades_con_metricas": 0,
+                "alertas_densidad": len(sensor_alerts)
+            }
+        }
+        
+        # Procesar entidades de riesgo con exhaustividad
+        entitats_literals = 0
+        entitats_inferides = 0
+        entitats_amb_metriques = 0
+
+        for _, row in final_df.iterrows() if not final_df.empty else []:
+            # Usar columna Resolución que sí existe
+            resolucio = row.get("Resolución", "literal")
+            if resolucio == "agregado_clinico":
+                entitats_inferides += 1
+            else:
+                entitats_literals += 1
+                
+            if row.get("Métricas", "NO DISPONIBLE") != "NO DISPONIBLE":
+                entitats_amb_metriques += 1
+            
+            entitat_entry = {
+                "nombre": row["Entidad"],
+                "tipo": row["Tipo"],
+                "es_literal": resolucio != "agregado_clinico",
+                "poblacion_afectada": row["Población Afectada"].split(", ") if row["Población Afectada"] else [],
+                "relacion_causal": row["Relación Causal"],
+                "metricas_completas": row["Métricas"],
+                "p_value": row["P-value"] if pd.notna(row["P-value"]) else None,
+                "nivel_evidencia": row["Nivel evidencia"],
+                "estado_validacion": row["Estado"],
+                "riesgo_omision": row["Riesgo de Omisión"],
+                "fragmento_fuente": row["Fragmento fuente"]
+            }
+            hierarchical_json["entidades_de_riesgo"].append(entitat_entry)
+        
+        # Actualizar resumen ejecutivo
+        hierarchical_json["resumen_ejecutivo"]["entidades_literales"] = entitats_literals
+        hierarchical_json["resumen_ejecutivo"]["entidades_inferidas"] = entitats_inferides
+        hierarchical_json["resumen_ejecutivo"]["entidades_con_metricas"] = entitats_amb_metriques
+        
+        # Extraer señales prioritarias y gaps de los payloads
+        for payload_data in all_payloads:
+            payload = payload_data.get("payload", {})
+            
+            # Señales prioritarias
+            señales = payload.get("señales_prioritarias", [])
+            hierarchical_json["señales_prioritarias"].extend(señales)
+            
+            # Gaps críticos (combinar de todos los payloads)
+            gaps = payload.get("gaps_criticos", {})
+            for key, value in gaps.items():
+                if key not in hierarchical_json["gaps_criticos"] or hierarchical_json["gaps_criticos"][key] == "NO DISPONIBLE":
+                    hierarchical_json["gaps_criticos"][key] = value
+        
+        # Mostrar JSON jerárquico principal
+        with json_placeholder.container():
+            st.markdown('<div class="section-label">STRUCTURED OUTPUT</div>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="json-display">{json.dumps(hierarchical_json, indent=2, ensure_ascii=False)}</div>',
+                unsafe_allow_html=True
+            )
+            
+            # Auditoría técnica en expander separado
+            with st.expander("Technical Audit Data", expanded=False):
+                st.markdown("Complete API payload for technical audit:")
+                st.markdown(
+                    f'<div class="json-display">{json.dumps(all_payloads, indent=2, ensure_ascii=False)}</div>',
+                    unsafe_allow_html=True
+                )
+    else:
+        with json_placeholder.container():
+            st.markdown('<div class="section-label">STRUCTURED OUTPUT</div>', unsafe_allow_html=True)
+            empty_json = {
+                "metadata": {
+                    "abstracts_procesados": 0,
+                    "total_entidades": 0,
+                    "confianza_global": "0%",
+                    "tipo_extraccion": "Jerárquico de Alta Densidad"
+                },
+                "entidades_de_riesgo": [],
+                "señales_prioritarias": [],
+                "gaps_criticos": {
+                    "microbiota": "NO DISPONIBLE",
+                    "biomarcadores_moleculares": "NO DISPONIBLE",
+                    "metricas_estadisticas": "NO DISPONIBLE",
+                    "datos_genomicos": "NO DISPONIBLE",
+                    "interacciones_farmacologicas": "NO DISPONIBLE"
+                },
+                "mensaje": "Ninguna entidad de riesgo encontrada en los abstracts procesados"
+            }
+            st.markdown(
+                f'<div class="json-display">{json.dumps(empty_json, indent=2, ensure_ascii=False)}</div>',
+                unsafe_allow_html=True
+            )
+
+    # Errores y alertas (compactos)
+    if errors or sensor_alerts:
+        col_err, col_alert = st.columns(2)
+        if errors:
+            with col_err.expander(f"❌ Errores ({len(errors)})", expanded=False):
+                err_df = pd.DataFrame(errors, columns=["Fila", "Error"])
+                st.dataframe(err_df, use_container_width=True, hide_index=True)
+        if sensor_alerts:
+            with col_alert.expander(f"⚠️ Alertas ({len(sensor_alerts)})", expanded=False):
+                sensor_df = pd.DataFrame(sensor_alerts, columns=["Fila", "Alerta"])
+                st.dataframe(sensor_df, use_container_width=True, hide_index=True)
+
+# KPI BAR (valores 0 antes de ejecutar, reales después)
+with kpi_placeholder.container():
+    st.markdown('<div class="kpi-band">', unsafe_allow_html=True)
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Procesados", processed_count)
+    with col2:
+        st.metric("Entidades", entity_count)
+    with col3:
+        st.metric("Alertas", total_alerts)
+    with col4:
+        st.metric("Confianza", f"{confidence_level}%")
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Indicador de demo gratuita
+    _, es_demo_check = resolve_api_key(user_api_key)
+    if es_demo_check and st.session_state.demo_count > 0:
+        restantes = DEMO_LIMIT - st.session_state.demo_count
+        st.markdown(f'''
+        <div style="font-size: 11px; color: #8896A5; 
+                    text-align: right; margin-top: -12px;
+                    margin-bottom: 8px;">
+            Demo gratuita — {restantes} análisis restantes 
+            de {DEMO_LIMIT} · 
+            <a href="https://aistudio.google.com/app/apikey"
+               target="_blank" style="color: #1A56DB;">
+                Usar tu propia key →
+            </a>
+        </div>
+        ''', unsafe_allow_html=True)
+
+

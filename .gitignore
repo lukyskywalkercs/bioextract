@@ -1,0 +1,22 @@
+# Secrets — nunca subir al repositorio
+.streamlit/secrets.toml
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+venv/
+.venv/
+
+# Streamlit
+.streamlit/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data — no subir archivos de datos personales
+*.csv
+*.xlsx
+*.xls
