@@ -278,6 +278,18 @@ st.markdown('''
         text-transform: uppercase;
     ">BIOEXTRACT</span>
     <span style="
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 9px;
+        font-weight: 400;
+        color: #8896A5;
+        letter-spacing: 1px;
+        background: #F7F9FC;
+        border: 1px solid #E2E8F0;
+        border-radius: 4px;
+        padding: 2px 6px;
+        align-self: center;
+    ">v1.2.01</span>
+    <span style="
         font-size: 18px;
         font-weight: 600;
         color: #0D1B2A;
@@ -476,14 +488,6 @@ def parse_json_response(raw_text: str) -> Dict[str, Any]:
             return json.loads(match.group(0))
         except json.JSONDecodeError:
             return {"results": []}
-
-
-def _safe_list(value: Any) -> List[str]:
-    if isinstance(value, list):
-        return [str(x).strip() for x in value if str(x).strip()]
-    elif value:
-        return [str(value).strip()]
-    return []
 
 
 def _safe_string(value: Any) -> str:
@@ -1279,65 +1283,6 @@ def calculate_hierarchical_confidence(
     return score, estudio
 
 
-def calculate_confidence_level(extracted_results: List[Dict[str, Any]], auditoria: Dict[str, Any]) -> int:
-    """Calcula nivell de confiança segons estàndards de qualitat clínica (GCP/ICH)"""
-    if not extracted_results:
-        return 0
-    
-    confidence_factors = []
-    
-    # Factor 1: Validez estadística (p-values significativos)
-    significant_p_values = sum(1 for result in extracted_results 
-                              if result.get("metricas", {}).get("p_value") is not None 
-                              and _safe_float(result.get("metricas", {}).get("p_value")) is not None
-                              and _safe_float(result.get("metricas", {}).get("p_value")) < 0.05)
-    total_p_values = sum(1 for result in extracted_results 
-                        if result.get("metricas", {}).get("p_value") is not None)
-    
-    if total_p_values > 0:
-        significance_ratio = significant_p_values / total_p_values
-        confidence_factors.append(int(60 + (significance_ratio * 40)))  # 60-100% segons significància
-    else:
-        confidence_factors.append(50)  # Base mitjana sense p-values
-    
-    # Factor 2: Qualitat de trazabilitat (fragments font detallats)
-    detailed_fragments = sum(1 for result in extracted_results 
-                            if len(result.get("fragmento_fuente", "")) > 30)
-    fragment_quality = detailed_fragments / len(extracted_results) if extracted_results else 0
-    confidence_factors.append(int(50 + (fragment_quality * 50)))  # 50-100% segons qualitat
-    
-    # Factor 3: Biomarcadors clínicament validats
-    validated_biomarkers = sum(1 for result in extracted_results 
-                              if result.get("tipo_biomarcador") in ["receptor", "proteina", "gen"])
-    validation_ratio = validated_biomarkers / len(extracted_results) if extracted_results else 0
-    confidence_factors.append(int(40 + (validation_ratio * 60)))  # 40-100% segons validació
-    
-    # Factor 4: Consistència de l'auditoria
-    riesgo = auditoria.get("riesgo_omision", "bajo")
-    if riesgo == "bajo":
-        confidence_factors.append(95)  # Alta confiança
-    elif riesgo == "medio":
-        confidence_factors.append(75)  # Confiança mitjana
-    else:  # alto
-        confidence_factors.append(40)  # Baixa confiança - revisió necessària
-    
-    # Factor 5: Penalització per errors de validació
-    validation_errors = len(auditoria.get("validacion_alertas", []))
-    if validation_errors == 0:
-        confidence_factors.append(100)
-    elif validation_errors <= 2:
-        confidence_factors.append(80)
-    else:
-        confidence_factors.append(50)  # Molts errors redueixen confiança
-    
-    final_confidence = int(sum(confidence_factors) / len(confidence_factors))
-    
-    # ESTÀNDARD CLÍNIC: Confiança < 85% requereix revisió manual
-    if final_confidence < 85:
-        final_confidence = min(final_confidence, 84)  # Cap per sota del llindar clínic
-    
-    return final_confidence
-
 
 def validate_with_ai(abstract: str, extracted_entities: List[Dict], api_key: str) -> Dict:
     """
@@ -1485,11 +1430,7 @@ def call_gemini_extract(abstract: str, api_key: str, model_preference: str = "Au
     if not raw_text:
         return {"entidades_de_riesgo": [], "validacion_alertas": ["No se ha recibido respuesta de Gemini"]}
     
-    # DEBUG: Mostrar resposta bruta per diagnosticar
-    print(f"DEBUG - Resposta bruta de Gemini: {raw_text[:500]}...")
-    
     parsed = parse_json_response(raw_text)
-    print(f"DEBUG - JSON parsejat: {parsed}")
     
     coerced = coerce_payload(parsed, abstract_text=abstract)
 
@@ -1682,8 +1623,8 @@ def normalize_results_hierarchical(
             for bio in biomarcadors_implicits:
                 if isinstance(bio, dict):
                     marcador = bio.get('marcador', '')
-                    estado = bio.get('estado', '')
-                    bio_list.append(f"{marcador} ({estado})")
+                    bio_estado = bio.get('estado', '')
+                    bio_list.append(f"{marcador} ({bio_estado})")
                 elif isinstance(bio, str):
                     bio_list.append(bio)
             biomarcadors_str = "; ".join(bio_list)
