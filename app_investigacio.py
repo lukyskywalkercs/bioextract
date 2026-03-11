@@ -288,7 +288,7 @@ st.markdown('''
         border-radius: 4px;
         padding: 2px 6px;
         align-self: center;
-    ">v1.2.02</span>
+    ">v1.2.03</span>
     <span style="
         font-size: 18px;
         font-weight: 600;
@@ -2037,7 +2037,7 @@ if run_button:
     
     total_alerts = error_count + sensor_error_count
 
-    # ── CÁLCULO PREVIO: veredicto y señales ───────────────────────
+    # ── CÁLCULO PREVIO ────────────────────────────────────────────
     hay_criticos = any(
         _safe_string(e.get("riesgo_omision", "")).upper() == "CRÍTICO"
         for p in all_payloads for e in p.get("payload", {}).get("entidades_de_riesgo", [])
@@ -2045,90 +2045,192 @@ if run_button:
 
     all_señales = []
     for p in all_payloads:
-        señales = p.get("payload", {}).get("señales_prioritarias", [])
-        all_señales.extend(señales)
+        all_señales.extend(p.get("payload", {}).get("señales_prioritarias", []))
 
-    # ── RIGHT COL: veredicto → señales → tabla ────────────────────
+    # ── CONSTRUIR JSON JERÁRQUICO ──────────────────────────────────
+    hierarchical_json = None
+    if all_payloads:
+        hierarchical_json = {
+            "metadata": {
+                "abstracts_procesados": len(all_payloads),
+                "total_entidades": len(final_df) if not final_df.empty else 0,
+                "confianza_global": f"{confidence_level}%",
+                "timestamp": pd.Timestamp.now().isoformat(),
+                "tipo_extraccion": "Jerárquico de Alta Densidad"
+            },
+            "entidades_de_riesgo": [],
+            "señales_prioritarias": [],
+            "gaps_criticos": {},
+            "resumen_ejecutivo": {
+                "entidades_literales": 0,
+                "entidades_inferidas": 0,
+                "entidades_con_metricas": 0,
+                "alertas_densidad": len(sensor_alerts)
+            }
+        }
+        entitats_literals = 0
+        entitats_inferides = 0
+        entitats_amb_metriques = 0
+        for _, row in final_df.iterrows() if not final_df.empty else []:
+            resolucio = row.get("Resolución", "literal")
+            if resolucio == "agregado_clinico":
+                entitats_inferides += 1
+            else:
+                entitats_literals += 1
+            if row.get("Métricas", "NO DISPONIBLE") != "NO DISPONIBLE":
+                entitats_amb_metriques += 1
+            hierarchical_json["entidades_de_riesgo"].append({
+                "nombre": row["Entidad"],
+                "tipo": row["Tipo"],
+                "es_literal": resolucio != "agregado_clinico",
+                "poblacion_afectada": row["Población Afectada"].split(", ") if row["Población Afectada"] else [],
+                "relacion_causal": row["Relación Causal"],
+                "metricas_completas": row["Métricas"],
+                "p_value": row["P-value"] if pd.notna(row["P-value"]) else None,
+                "nivel_evidencia": row["Nivel evidencia"],
+                "estado_validacion": row["Estado"],
+                "riesgo_omision": row["Riesgo de Omisión"],
+                "fragmento_fuente": row["Fragmento fuente"]
+            })
+        hierarchical_json["resumen_ejecutivo"]["entidades_literales"] = entitats_literals
+        hierarchical_json["resumen_ejecutivo"]["entidades_inferidas"] = entitats_inferides
+        hierarchical_json["resumen_ejecutivo"]["entidades_con_metricas"] = entitats_amb_metriques
+        for payload_data in all_payloads:
+            payload = payload_data.get("payload", {})
+            hierarchical_json["señales_prioritarias"].extend(
+                payload.get("señales_prioritarias", [])
+            )
+            for key, value in payload.get("gaps_criticos", {}).items():
+                if key not in hierarchical_json["gaps_criticos"] or \
+                        hierarchical_json["gaps_criticos"][key] == "NO DISPONIBLE":
+                    hierarchical_json["gaps_criticos"][key] = value
+
+    # ── RIGHT COL: 5 SECCIONES CLÍNICAS ──────────────────────────
     with table_placeholder.container():
 
-        # 1. VEREDICTO (primero siempre)
+        # ══ SECCIÓN 1 — VEREDICTO DEL ANÁLISIS ════════════════════
+        st.markdown('''
+        <div class="section-label">VEREDICTO DEL ANÁLISIS</div>
+        <div style="font-size:11px; color:#8896A5; margin-bottom:10px;">
+            Evaluación automática de la integridad matemática del abstract.
+            No evalúa calidad metodológica.
+        </div>
+        ''', unsafe_allow_html=True)
+
         if hay_criticos:
-            st.markdown('''
+            st.markdown(f'''
             <div class="verdict-critical">
-                🚨 <strong>Anomalía matemática crítica</strong> —
-                Se encontraron valores estadísticamente imposibles.
-                Revisar el abstract antes de usar estos datos.
+                <div style="font-size:15px; font-weight:700; margin-bottom:4px;">
+                    🚨 Anomalía matemática crítica detectada
+                </div>
+                <div style="font-size:12px;">
+                    Se encontraron valores estadísticamente imposibles.
+                    Revisar el abstract antes de usar estos datos en ningún análisis.
+                </div>
+                <div style="font-size:11px; margin-top:8px; opacity:0.8;">
+                    Confianza de extracción: {confidence_level}%
+                </div>
             </div>
             ''', unsafe_allow_html=True)
         elif confidence_level >= 85:
-            st.markdown('''
+            st.markdown(f'''
             <div class="verdict-ok">
-                ✅ <strong>Extracción completa</strong> —
-                Métricas estructuradas disponibles.
+                <div style="font-size:15px; font-weight:700; margin-bottom:4px;">
+                    ✅ Extracción completa
+                </div>
+                <div style="font-size:12px;">
+                    Métricas estructuradas disponibles.
+                    Revisar señales prioritarias antes de usar los datos.
+                </div>
+                <div style="font-size:11px; margin-top:8px; opacity:0.8;">
+                    Confianza de extracción: {confidence_level}%
+                </div>
             </div>
             ''', unsafe_allow_html=True)
         elif confidence_level >= 60:
-            st.markdown('''
+            st.markdown(f'''
             <div class="verdict-warning">
-                ⚠️ <strong>Extracción parcial</strong> —
-                Verificar métricas clave en el paper original.
+                <div style="font-size:15px; font-weight:700; margin-bottom:4px;">
+                    ⚠️ Extracción parcial
+                </div>
+                <div style="font-size:12px;">
+                    Datos utilizables con precaución.
+                    Verificar métricas clave en el paper original.
+                </div>
+                <div style="font-size:11px; margin-top:8px; opacity:0.8;">
+                    Confianza de extracción: {confidence_level}%
+                </div>
             </div>
             ''', unsafe_allow_html=True)
         else:
-            st.markdown('''
+            st.markdown(f'''
             <div class="verdict-warning">
-                🔍 <strong>Cobertura baja</strong> —
-                El abstract puede no contener suficientes
-                datos estructurados.
+                <div style="font-size:15px; font-weight:700; margin-bottom:4px;">
+                    🔍 Cobertura baja
+                </div>
+                <div style="font-size:12px;">
+                    El abstract no contiene suficientes datos estructurados
+                    para este análisis.
+                </div>
+                <div style="font-size:11px; margin-top:8px; opacity:0.8;">
+                    Confianza de extracción: {confidence_level}%
+                </div>
             </div>
             ''', unsafe_allow_html=True)
 
-        # 2. SEÑALES PRIORITARIAS
+        # ══ SECCIÓN 2 — SEÑALES PRIORITARIAS ══════════════════════
         if all_señales:
-            st.markdown(
-                '<div class="section-label">SEÑALES PRIORITARIAS</div>',
-                unsafe_allow_html=True
-            )
+            st.markdown('''
+            <div class="section-label" style="margin-top:20px;">SEÑALES PRIORITARIAS</div>
+            <div style="font-size:11px; color:#8896A5; margin-bottom:10px;">
+                Hallazgos que requieren atención especial al leer el paper completo.
+                Generadas automáticamente por el sistema.
+            </div>
+            ''', unsafe_allow_html=True)
+
             for señal in all_señales:
-                tipo = señal.get("tipo", "")
+                tipo = señal.get("tipo", "").upper().replace("_", " ")
                 desc = señal.get("descripcion", "")
                 impacto = señal.get("impacto_clinico", "")
                 poblacion = señal.get("poblacion_afectada", "")
-
                 if impacto == "alto":
-                    color_border = "#991B1B"
-                    color_bg = "#FEF2F2"
-                    icon = "🔴"
+                    border, bg = "#991B1B", "#FEF2F2"
+                    badge, badge_color = "🔴 IMPACTO ALTO", "#991B1B"
                 elif impacto == "medio":
-                    color_border = "#92400E"
-                    color_bg = "#FFFBEB"
-                    icon = "🟡"
+                    border, bg = "#92400E", "#FFFBEB"
+                    badge, badge_color = "🟡 IMPACTO MEDIO", "#92400E"
                 else:
-                    color_border = "#1A56DB"
-                    color_bg = "#EBF2FF"
-                    icon = "🔵"
+                    border, bg = "#1A56DB", "#EBF2FF"
+                    badge, badge_color = "🔵 IMPACTO BAJO", "#1A56DB"
 
                 st.markdown(f'''
-                <div style="
-                    background: {color_bg};
-                    border-left: 3px solid {color_border};
-                    border-radius: 0 6px 6px 0;
-                    padding: 10px 14px;
-                    margin: 6px 0;
-                    font-size: 13px;
-                    color: #0D1B2A;
-                ">
-                    <div style="font-weight:600; margin-bottom:4px;">
-                        {icon} {tipo.upper().replace("_", " ")}
+                <div style="background:{bg}; border-left:3px solid {border};
+                            border-radius:0 6px 6px 0; padding:12px 16px; margin:6px 0;">
+                    <div style="display:flex; justify-content:space-between;
+                                align-items:center; margin-bottom:6px;">
+                        <span style="font-size:11px; font-weight:700;
+                                     color:#8896A5; letter-spacing:1px;">{tipo}</span>
+                        <span style="font-size:10px; font-weight:700;
+                                     color:{badge_color};">{badge}</span>
                     </div>
-                    <div>{desc}</div>
-                    <div style="font-size:11px; color:#8896A5; margin-top:4px;">
-                        Población: {poblacion}
+                    <div style="font-size:13px; color:#0D1B2A; line-height:1.5;">{desc}</div>
+                    <div style="font-size:11px; color:#8896A5; margin-top:6px;">
+                        Población afectada: {poblacion}
                     </div>
                 </div>
                 ''', unsafe_allow_html=True)
 
-        # 3. TABLA CLÍNICA
+        # ══ SECCIÓN 3 — MÉTRICAS ESTADÍSTICAS EXTRAÍDAS ═══════════
+        st.markdown('''
+        <div class="section-label" style="margin-top:20px;">
+            MÉTRICAS ESTADÍSTICAS EXTRAÍDAS
+        </div>
+        <div style="font-size:11px; color:#8896A5; margin-bottom:10px;">
+            Entidades biomédicas estructuradas extraídas del abstract.
+            🚨 indica anomalía matemática crítica. ✅ indica extracción verificada.
+        </div>
+        ''', unsafe_allow_html=True)
+
         if final_df.empty:
             if error_count > 0:
                 main_error = errors[0][1] if errors else "Error desconocido"
@@ -2150,16 +2252,11 @@ if run_button:
                 )
         else:
             columnas_clinicas = [
-                "Estado",
-                "Entidad",
-                "Tipo",
-                "Población Afectada",
-                "Métricas",
-                "Riesgo de Omisión",
-                "Fragmento fuente",
+                "Estado", "Entidad", "Tipo",
+                "Población Afectada", "Métricas", "Riesgo de Omisión",
             ]
-            cols_mostrar = [c for c in columnas_clinicas if c in final_df.columns]
-            tabla_clinica = final_df[cols_mostrar]
+            cols_ok = [c for c in columnas_clinicas if c in final_df.columns]
+            tabla_clinica = final_df[cols_ok]
 
             def highlight_status(val):
                 if val == "🔥":
@@ -2188,147 +2285,114 @@ if run_button:
                 )
             st.dataframe(styled_tabla, use_container_width=True, hide_index=True)
 
-    # Controls de descàrrega i auditoria
-    if not final_df.empty:
-        csv_buffer = io.StringIO()
-        final_df.to_csv(csv_buffer, index=False)
-        download_placeholder.download_button(
-            "💾 Descargar CSV",
-            data=csv_buffer.getvalue(),
-            file_name="biomarcadores_extraidos.csv",
-            mime="text/csv",
-            use_container_width=True,
-        )
-    else:
-        empty_csv = io.StringIO()
-        pd.DataFrame(
-            columns=[
-                "Estado", "ID_Abstract", "Fila_Origen", "Entidad", "Tipo",
-                "Resolución", "Biomarcadores Implícitos", "Población Afectada", "Relación Causal", 
-                "Calificador", "Métricas", "P-value", "Nivel evidencia", 
-                "Riesgo de Omisión", "Fragmento fuente",
+        # ══ SECCIÓN 4 — TRAZABILIDAD — FRAGMENTOS FUENTE ══════════
+        if not final_df.empty and "Fragmento fuente" in final_df.columns:
+            fragmentos_df = final_df[
+                final_df["Fragmento fuente"].notna() &
+                (final_df["Fragmento fuente"].astype(str).str.strip() != "")
             ]
-        ).to_csv(empty_csv, index=False)
-        download_placeholder.download_button(
-            "💾 Descargar CSV (vacío)",
-            data=empty_csv.getvalue(),
-            file_name="biomarcadores_extraidos.csv",
-            mime="text/csv",
-            use_container_width=True,
-        )
+            if not fragmentos_df.empty:
+                st.markdown('''
+                <div class="section-label" style="margin-top:20px;">
+                    TRAZABILIDAD — FRAGMENTOS FUENTE
+                </div>
+                <div style="font-size:11px; color:#8896A5; margin-bottom:10px;">
+                    Texto exacto del abstract del que se extrajo cada entidad.
+                    Permite verificar la extracción contra el texto original.
+                </div>
+                ''', unsafe_allow_html=True)
 
-    # JSON JERÁRQUICO DE ALTA DENSIDAD - SALIDA PRINCIPAL
-    # Crear JSON jerárquico exhaustivo para laboratorio
-    if all_payloads:
-        hierarchical_json = {
-            "metadata": {
-                "abstracts_procesados": len(all_payloads),
-                "total_entidades": len(final_df) if not final_df.empty else 0,
-                "confianza_global": f"{confidence_level}%",
-                "timestamp": pd.Timestamp.now().isoformat(),
-                "tipo_extraccion": "Jerárquico de Alta Densidad"
-            },
-            "entidades_de_riesgo": [],
-            "señales_prioritarias": [],
-            "gaps_criticos": {},
-            "resumen_ejecutivo": {
-                "entidades_literales": 0,
-                "entidades_inferidas": 0,
-                "entidades_con_metricas": 0,
-                "alertas_densidad": len(sensor_alerts)
-            }
-        }
-        
-        # Procesar entidades de riesgo con exhaustividad
-        entitats_literals = 0
-        entitats_inferides = 0
-        entitats_amb_metriques = 0
+                for _, row in fragmentos_df.iterrows():
+                    entidad = row.get("Entidad", "")
+                    fragmento = str(row.get("Fragmento fuente", "")).strip()
+                    estado = row.get("Estado", "")
+                    metricas = row.get("Métricas", "")
+                    es_critico = str(row.get("Riesgo de Omisión", "")) == "CRÍTICO"
+                    border_color = "#991B1B" if es_critico else "#E2E8F0"
+                    bg_color = "#FEF2F2" if es_critico else "#F7F9FC"
+                    metricas_str = metricas if metricas and metricas != "NO DISPONIBLE" else ""
 
-        for _, row in final_df.iterrows() if not final_df.empty else []:
-            # Usar columna Resolución que sí existe
-            resolucio = row.get("Resolución", "literal")
-            if resolucio == "agregado_clinico":
-                entitats_inferides += 1
+                    st.markdown(f'''
+                    <div style="border:1px solid {border_color}; border-radius:6px;
+                                padding:10px 14px; margin:4px 0; background:{bg_color};">
+                        <div style="display:flex; justify-content:space-between;
+                                    align-items:baseline; margin-bottom:4px;">
+                            <span style="font-size:12px; font-weight:600;
+                                         color:#0D1B2A;">{estado} {entidad}</span>
+                            <span style="font-size:11px; color:#1A56DB;
+                                         font-family:monospace;">{metricas_str}</span>
+                        </div>
+                        <div style="font-size:12px; color:#4A5568;
+                                    font-style:italic; line-height:1.5;">
+                            "{fragmento}"
+                        </div>
+                    </div>
+                    ''', unsafe_allow_html=True)
+
+        # ══ SECCIÓN 5 — EXPORTAR RESULTADOS ═══════════════════════
+        st.markdown('''
+        <div class="section-label" style="margin-top:20px;">EXPORTAR RESULTADOS</div>
+        <div style="font-size:11px; color:#8896A5; margin-bottom:10px;">
+            Descarga los resultados para uso en tu investigación.
+            CSV para Excel/análisis estadístico. JSON para procesamiento programático.
+        </div>
+        ''', unsafe_allow_html=True)
+
+        exp_col1, exp_col2 = st.columns(2)
+        with exp_col1:
+            if not final_df.empty:
+                csv_buffer = io.StringIO()
+                final_df.to_csv(csv_buffer, index=False)
+                st.download_button(
+                    "💾 Descargar CSV",
+                    data=csv_buffer.getvalue(),
+                    file_name="biomarcadores_extraidos.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                )
             else:
-                entitats_literals += 1
-                
-            if row.get("Métricas", "NO DISPONIBLE") != "NO DISPONIBLE":
-                entitats_amb_metriques += 1
-            
-            entitat_entry = {
-                "nombre": row["Entidad"],
-                "tipo": row["Tipo"],
-                "es_literal": resolucio != "agregado_clinico",
-                "poblacion_afectada": row["Población Afectada"].split(", ") if row["Población Afectada"] else [],
-                "relacion_causal": row["Relación Causal"],
-                "metricas_completas": row["Métricas"],
-                "p_value": row["P-value"] if pd.notna(row["P-value"]) else None,
-                "nivel_evidencia": row["Nivel evidencia"],
-                "estado_validacion": row["Estado"],
-                "riesgo_omision": row["Riesgo de Omisión"],
-                "fragmento_fuente": row["Fragmento fuente"]
-            }
-            hierarchical_json["entidades_de_riesgo"].append(entitat_entry)
-        
-        # Actualizar resumen ejecutivo
-        hierarchical_json["resumen_ejecutivo"]["entidades_literales"] = entitats_literals
-        hierarchical_json["resumen_ejecutivo"]["entidades_inferidas"] = entitats_inferides
-        hierarchical_json["resumen_ejecutivo"]["entidades_con_metricas"] = entitats_amb_metriques
-        
-        # Extraer señales prioritarias y gaps de los payloads
-        for payload_data in all_payloads:
-            payload = payload_data.get("payload", {})
-            
-            # Señales prioritarias
-            señales = payload.get("señales_prioritarias", [])
-            hierarchical_json["señales_prioritarias"].extend(señales)
-            
-            # Gaps críticos (combinar de todos los payloads)
-            gaps = payload.get("gaps_criticos", {})
-            for key, value in gaps.items():
-                if key not in hierarchical_json["gaps_criticos"] or hierarchical_json["gaps_criticos"][key] == "NO DISPONIBLE":
-                    hierarchical_json["gaps_criticos"][key] = value
-        
-        # Mostrar JSON jerárquico principal
-        with json_placeholder.container():
-            with st.expander("📋 Structured JSON Output", expanded=False):
+                empty_csv = io.StringIO()
+                pd.DataFrame(columns=[
+                    "Estado", "Entidad", "Tipo", "Población Afectada",
+                    "Métricas", "Riesgo de Omisión", "Fragmento fuente",
+                ]).to_csv(empty_csv, index=False)
+                st.download_button(
+                    "💾 Descargar CSV (vacío)",
+                    data=empty_csv.getvalue(),
+                    file_name="biomarcadores_extraidos.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                )
+        with exp_col2:
+            if hierarchical_json:
+                st.download_button(
+                    "📋 Descargar JSON estructurado",
+                    data=json.dumps(hierarchical_json, indent=2, ensure_ascii=False),
+                    file_name="bioextract_output.json",
+                    mime="application/json",
+                    use_container_width=True,
+                )
+
+        if hierarchical_json:
+            with st.expander("👁 Previsualizar JSON estructurado", expanded=False):
+                st.markdown('''
+                <div style="font-size:11px; color:#8896A5; margin-bottom:8px;">
+                    Estructura de datos completa generada por BioExtract.
+                    Formato estándar para integración con otros sistemas.
+                </div>
+                ''', unsafe_allow_html=True)
                 st.markdown(
                     f'<div class="json-display">{json.dumps(hierarchical_json, indent=2, ensure_ascii=False)}</div>',
                     unsafe_allow_html=True
                 )
-            with st.expander("Technical Audit Data", expanded=False):
+            with st.expander("🔧 Datos de auditoría técnica", expanded=False):
                 st.markdown("Complete API payload for technical audit:")
                 st.markdown(
                     f'<div class="json-display">{json.dumps(all_payloads, indent=2, ensure_ascii=False)}</div>',
                     unsafe_allow_html=True
                 )
-    else:
-        with json_placeholder.container():
-            empty_json = {
-                "metadata": {
-                    "abstracts_procesados": 0,
-                    "total_entidades": 0,
-                    "confianza_global": "0%",
-                    "tipo_extraccion": "Jerárquico de Alta Densidad"
-                },
-                "entidades_de_riesgo": [],
-                "señales_prioritarias": [],
-                "gaps_criticos": {
-                    "microbiota": "NO DISPONIBLE",
-                    "biomarcadores_moleculares": "NO DISPONIBLE",
-                    "metricas_estadisticas": "NO DISPONIBLE",
-                    "datos_genomicos": "NO DISPONIBLE",
-                    "interacciones_farmacologicas": "NO DISPONIBLE"
-                },
-                "mensaje": "Ninguna entidad de riesgo encontrada en los abstracts procesados"
-            }
-            with st.expander("📋 Structured JSON Output", expanded=False):
-                st.markdown(
-                    f'<div class="json-display">{json.dumps(empty_json, indent=2, ensure_ascii=False)}</div>',
-                    unsafe_allow_html=True
-                )
 
-    # Errores y alertas (compactos)
+    # Errores técnicos (compactos, fuera del flujo principal)
     if errors or sensor_alerts:
         col_err, col_alert = st.columns(2)
         if errors:
