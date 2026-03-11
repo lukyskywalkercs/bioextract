@@ -18,244 +18,298 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@300;400;500&display=swap');
 
 :root {
-        --ink: #0D1B2A;
-        --ink-light: #4A5568;
-        --muted: #8896A5;
-        --line: #E2E8F0;
-        --surface: #F7F9FC;
-        --bg: #FFFFFF;
-        --accent: #1A56DB;
-        --accent-dim: #EBF2FF;
-        --success: #166534;
-        --warning: #92400E;
-        --danger: #991B1B;
-        --success-bg: #F0FDF4;
-        --warning-bg: #FFFBEB;
-        --danger-bg: #FEF2F2;
-    }
+    --bg:          #FAFAFA;
+    --surface:     #FFFFFF;
+    --surface-2:   #F4F4F5;
+    --border:      #E4E4E7;
+    --border-2:    #D1D1D6;
+    --ink:         #09090B;
+    --ink-2:       #3F3F46;
+    --muted:       #71717A;
+    --accent:      #2563EB;
+    --accent-dim:  #EFF6FF;
+    --accent-hover:#1D4ED8;
+    --success:     #15803D;
+    --success-bg:  #F0FDF4;
+    --success-bd:  #86EFAC;
+    --warning:     #92400E;
+    --warning-bg:  #FFFBEB;
+    --warning-bd:  #FDE68A;
+    --danger:      #B91C1C;
+    --danger-bg:   #FEF2F2;
+    --danger-bd:   #FECACA;
+    --shadow-sm:   0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+    --shadow-md:   0 4px 12px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04);
+    --radius:      8px;
+    --radius-sm:   6px;
+}
 
-    .stApp {
-        background: var(--bg) !important;
-        color: var(--ink) !important;
-        font-family: 'Inter', system-ui, sans-serif !important;
-    }
+/* ── Base ─────────────────────────────────────────── */
+.stApp {
+    background: var(--bg) !important;
+    color: var(--ink) !important;
+    font-family: 'DM Sans', system-ui, sans-serif !important;
+}
 
-    div.block-container {
-        padding: 24px 32px !important;
-        max-width: 100% !important;
-    }
+div.block-container {
+    padding: 24px 48px !important;
+    max-width: 100% !important;
+}
 
-    section[data-testid="stSidebar"] {
-        display: none !important;
-    }
-
-    div.block-container {
-        padding: 24px 48px !important;
-        max-width: 100% !important;
-    }
-
-    [data-testid="stFileUploader"] {
-        padding: 0 !important;
-    }
-    [data-testid="stFileUploader"] section {
-        padding: 6px 10px !important;
-        min-height: 38px !important;
-        border-radius: 6px !important;
-    }
-    [data-testid="stFileUploader"] label {
-        display: none !important;
-    }
-
-    .sidebar-logo {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 13px;
-        font-weight: 700;
-        color: var(--accent);
-        padding: 20px 16px 12px;
-        border-bottom: none;
-    }
-    .sidebar-logo span { color: var(--muted); font-size: 11px; font-weight: 400; }
-
-    .sidebar-section-label {
-        font-size: 10px;
-        font-weight: 600;
-        letter-spacing: 1px;
-        color: var(--muted);
-        text-transform: uppercase;
-        margin-top: 24px;
-        padding-bottom: 8px;
-        border-bottom: 1px solid #E2E8F0;
-    }
-
-    .stButton button[kind="primary"] {
-        background: #1A56DB !important;
-        color: white !important;
-        border-radius: 6px !important;
-        height: 40px !important;
-        font-size: 13px !important;
-        font-weight: 500 !important;
-    }
-    .stButton button[kind="primary"]:hover {
-        background: #1648C0 !important;
-    }
-
-    [data-testid="metric-container"] {
-        background: var(--surface) !important;
-        border: 1px solid var(--line) !important;
-        border-radius: 8px !important;
-        padding: 16px 20px !important;
-    }
-    [data-testid="stMetricValue"] {
-        font-size: 28px !important;
-        font-weight: 700 !important;
-        color: var(--accent) !important;
-    }
-    [data-testid="stMetricLabel"] {
-        font-size: 11px !important;
-        font-weight: 600 !important;
-        color: var(--muted) !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.8px !important;
-    }
-
-    .section-label {
-        font-size: 9px;
-        font-weight: 700;
-        color: var(--muted);
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        margin: 0 0 12px 0;
-        padding-bottom: 8px;
-        border-bottom: 1px solid var(--line);
-        font-family: 'Inter', sans-serif;
-    }
-
-    .kpi-band {
-        background: #F7F9FC;
-        border-top: 1px solid #E2E8F0;
-        border-bottom: 1px solid #E2E8F0;
-        padding: 4px 0;
-        margin: 0 -32px 20px -32px;
-    }
-
-    .stTextArea textarea {
-        font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
-        font-size: 12px !important;
-        line-height: 1.6 !important;
-        color: var(--ink) !important;
-        background: var(--bg) !important;
-        border: 1px solid var(--line) !important;
-        border-radius: 6px !important;
-        padding: 12px !important;
-        resize: vertical !important;
-    }
-    .stTextArea textarea:focus {
-        border-color: var(--accent) !important;
-        outline: none !important;
-        box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.08) !important;
-    }
-    .stTextArea textarea::placeholder {
-        color: var(--muted) !important;
-        font-style: italic !important;
-    }
-
-    .verdict-ok {
-        background: var(--success-bg);
-        border: 1px solid #BBF7D0;
-        border-left: 4px solid var(--success);
-        border-radius: 6px;
-        padding: 12px 16px;
-        font-size: 13px;
-        color: var(--success);
-        font-weight: 500;
-    }
-    .verdict-warning {
-        background: var(--warning-bg);
-        border: 1px solid #FDE68A;
-        border-left: 4px solid var(--warning);
-        border-radius: 6px;
-        padding: 12px 16px;
-        font-size: 13px;
-        color: var(--warning);
-        font-weight: 500;
-    }
-    .verdict-critical {
-        background: var(--danger-bg);
-        border: 1px solid #FECACA;
-        border-left: 4px solid var(--danger);
-        border-radius: 6px;
-        padding: 12px 16px;
-        font-size: 13px;
-        color: var(--danger);
-        font-weight: 500;
-    }
-
-    .stDataFrame {
-        border: 1px solid var(--line) !important;
-        border-radius: 8px !important;
-        overflow: hidden !important;
-    }
-    .stDataFrame thead th {
-        background: var(--surface) !important;
-        color: var(--muted) !important;
-        font-size: 10px !important;
-        font-weight: 700 !important;
-        text-transform: uppercase !important;
-        letter-spacing: 0.8px !important;
-        border-bottom: 2px solid var(--line) !important;
-        padding: 10px 12px !important;
-    }
-    .stDataFrame tbody tr {
-        border-bottom: 1px solid var(--line) !important;
-    }
-    .stDataFrame tbody tr:hover {
-        background: var(--accent-dim) !important;
-    }
-    .stDataFrame tbody td {
-        font-size: 12px !important;
-        color: var(--ink) !important;
-        padding: 8px 12px !important;
-    }
-
-    .json-display {
-        background: #0D1B2A;
-        color: #A8D8A8;
-        border-radius: 8px;
-        padding: 20px;
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 11px;
-        line-height: 1.7;
-        max-height: 500px;
-        overflow-y: auto;
-        border: none;
-        white-space: pre-wrap;
-    }
-
-    .alert-success { background: var(--success-bg); color: var(--success); padding: 4px 8px; border-radius: 4px; font-size: 12px; }
-    .alert-warning { background: var(--warning-bg); color: var(--warning); padding: 4px 8px; border-radius: 4px; font-size: 12px; }
-    .alert-danger { background: var(--danger-bg); color: var(--danger); padding: 4px 8px; border-radius: 4px; font-size: 12px; }
-    .alert-clinical { background: var(--surface); border-left: 3px solid; padding: 12px 16px; border-radius: 0 6px 6px 0; }
-    .alert-review { border-left-color: var(--danger); }
-    .alert-acceptable { border-left-color: var(--warning); }
-
-    .controls-row {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        background: #F7F9FC;
-        border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        padding: 10px 16px;
-        margin-bottom: 16px;
-    }
-
+section[data-testid="stSidebar"] { display: none !important; }
 #MainMenu { visibility: hidden; }
-footer { visibility: hidden; }
-header { visibility: hidden; }
+footer    { visibility: hidden; }
+header    { visibility: hidden; }
 .stDeployButton { visibility: hidden; }
+
+/* ── File uploader — compact ──────────────────────── */
+[data-testid="stFileUploader"] { padding: 0 !important; }
+[data-testid="stFileUploader"] section {
+    padding: 6px 10px !important;
+    min-height: 38px !important;
+    border-radius: var(--radius-sm) !important;
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+}
+[data-testid="stFileUploader"] label { display: none !important; }
+
+/* ── Primary button ──────────────────────────────── */
+.stButton button[kind="primary"] {
+    background: var(--accent) !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    border-radius: var(--radius-sm) !important;
+    height: 40px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.2px !important;
+    box-shadow: var(--shadow-sm) !important;
+    font-family: 'DM Sans', sans-serif !important;
+    transition: background 0.15s ease !important;
+}
+.stButton button[kind="primary"]:hover {
+    background: var(--accent-hover) !important;
+    box-shadow: var(--shadow-md) !important;
+}
+
+/* ── KPI metric cards ────────────────────────────── */
+[data-testid="metric-container"] {
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    padding: 16px 20px !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+[data-testid="stMetricValue"] {
+    font-family: 'DM Mono', monospace !important;
+    font-size: 26px !important;
+    font-weight: 500 !important;
+    color: var(--ink) !important;
+}
+[data-testid="stMetricLabel"] {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: var(--muted) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.7px !important;
+    font-family: 'DM Sans', sans-serif !important;
+}
+
+/* ── Section label ──────────────────────────────── */
+.section-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin: 0 0 14px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'DM Sans', sans-serif;
+}
+
+/* ── Controls card ──────────────────────────────── */
+.controls-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 20px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-sm);
+}
+
+/* ── Text area ──────────────────────────────────── */
+.stTextArea textarea {
+    font-family: 'DM Mono', monospace !important;
+    font-size: 12px !important;
+    line-height: 1.65 !important;
+    color: var(--ink-2) !important;
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-sm) !important;
+    padding: 12px !important;
+    resize: vertical !important;
+}
+.stTextArea textarea:focus {
+    border-color: var(--accent) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+}
+.stTextArea textarea::placeholder {
+    color: var(--muted) !important;
+    font-style: italic !important;
+}
+
+/* ── Verdict cards ──────────────────────────────── */
+.verdict-ok {
+    background: var(--success-bg);
+    border: 1px solid var(--success-bd);
+    border-left: 4px solid var(--success);
+    border-radius: var(--radius-sm);
+    padding: 14px 18px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--success);
+    line-height: 1.5;
+    box-shadow: var(--shadow-sm);
+}
+.verdict-warning {
+    background: var(--warning-bg);
+    border: 1px solid var(--warning-bd);
+    border-left: 4px solid #D97706;
+    border-radius: var(--radius-sm);
+    padding: 14px 18px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--warning);
+    line-height: 1.5;
+    box-shadow: var(--shadow-sm);
+}
+.verdict-critical {
+    background: var(--danger-bg);
+    border: 1px solid var(--danger-bd);
+    border-left: 4px solid var(--danger);
+    border-radius: var(--radius-sm);
+    padding: 14px 18px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--danger);
+    line-height: 1.5;
+    box-shadow: var(--shadow-sm);
+}
+
+/* ── Signal pill badges ─────────────────────────── */
+.alert-success { background: var(--success-bg); color: var(--success); padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; border: 1px solid var(--success-bd); }
+.alert-warning { background: var(--warning-bg); color: var(--warning); padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; border: 1px solid var(--warning-bd); }
+.alert-danger  { background: var(--danger-bg);  color: var(--danger);  padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; border: 1px solid var(--danger-bd);  }
+.alert-clinical {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border-2);
+    padding: 10px 16px;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    box-shadow: var(--shadow-sm);
+}
+.alert-review     { border-left-color: var(--danger) !important; }
+.alert-acceptable { border-left-color: #D97706 !important; }
+
+/* ── Data table ─────────────────────────────────── */
+.stDataFrame {
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    overflow: hidden !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+.stDataFrame thead th {
+    background: var(--surface-2) !important;
+    color: var(--muted) !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.7px !important;
+    border-bottom: 1px solid var(--border) !important;
+    padding: 10px 12px !important;
+    font-family: 'DM Sans', sans-serif !important;
+}
+.stDataFrame tbody tr { border-bottom: 1px solid var(--border) !important; }
+.stDataFrame tbody tr:hover { background: var(--accent-dim) !important; }
+.stDataFrame tbody td {
+    font-size: 12px !important;
+    color: var(--ink-2) !important;
+    padding: 9px 12px !important;
+    font-family: 'DM Sans', sans-serif !important;
+}
+
+/* ── JSON dark block ────────────────────────────── */
+.json-display {
+    background: #18181B;
+    color: #A1A1AA;
+    border-radius: var(--radius);
+    padding: 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11.5px;
+    line-height: 1.7;
+    max-height: 500px;
+    overflow-y: auto;
+    border: 1px solid #27272A;
+    white-space: pre-wrap;
+}
+
+/* ── Expander ───────────────────────────────────── */
+[data-testid="stExpander"] {
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    background: var(--surface) !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+[data-testid="stExpander"] summary {
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    color: var(--ink-2) !important;
+    font-family: 'DM Sans', sans-serif !important;
+}
+
+/* ── Select / text inputs ───────────────────────── */
+[data-testid="stSelectbox"] select,
+[data-testid="stTextInput"] input {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 13px !important;
+    border-radius: var(--radius-sm) !important;
+    border: 1px solid var(--border) !important;
+    background: var(--surface) !important;
+    color: var(--ink) !important;
+}
+
+/* ── Tabs ───────────────────────────────────────── */
+[data-testid="stTabs"] [data-baseweb="tab"] {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    color: var(--muted) !important;
+}
+[data-testid="stTabs"] [aria-selected="true"] {
+    color: var(--ink) !important;
+    border-bottom-color: var(--accent) !important;
+}
+
+/* ── Download button ────────────────────────────── */
+[data-testid="stDownloadButton"] button {
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-sm) !important;
+    color: var(--ink-2) !important;
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+[data-testid="stDownloadButton"] button:hover {
+    background: var(--surface-2) !important;
+    border-color: var(--border-2) !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -263,50 +317,68 @@ header { visibility: hidden; }
 st.markdown('''
 <div style="
     display: flex;
-    align-items: baseline;
-    gap: 16px;
-    padding-bottom: 16px;
-    margin-bottom: 16px;
-    border-bottom: 1px solid #E2E8F0;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 0 18px 0;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #E4E4E7;
 ">
+    <div style="
+        width: 34px; height: 34px;
+        background: #09090B;
+        border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+    ">
+        <span style="
+            font-family: 'DM Mono', monospace;
+            font-size: 12px;
+            font-weight: 500;
+            color: #FAFAFA;
+            letter-spacing: -0.5px;
+        ">BE</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 1px;">
+        <span style="
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            color: #09090B;
+            letter-spacing: -0.3px;
+            line-height: 1.2;
+        ">BioExtract</span>
+        <span style="
+            font-family: 'DM Sans', sans-serif;
+            font-size: 12px;
+            font-weight: 400;
+            color: #71717A;
+            line-height: 1.2;
+        ">Structured Literature Triage</span>
+    </div>
     <span style="
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 11px;
-        font-weight: 700;
-        color: #1A56DB;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-    ">BIOEXTRACT</span>
-    <span style="
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 9px;
+        font-family: 'DM Mono', monospace;
+        font-size: 10px;
         font-weight: 400;
-        color: #8896A5;
-        letter-spacing: 1px;
-        background: #F7F9FC;
-        border: 1px solid #E2E8F0;
-        border-radius: 4px;
-        padding: 2px 6px;
+        color: #71717A;
+        background: #F4F4F5;
+        border: 1px solid #E4E4E7;
+        border-radius: 5px;
+        padding: 2px 7px;
         align-self: center;
-    ">v1.2.03</span>
+        margin-left: 2px;
+    ">v1.2.04</span>
     <span style="
-        font-size: 18px;
-        font-weight: 600;
-        color: #0D1B2A;
-        font-family: 'Inter', sans-serif;
-    ">Structured Literature Triage</span>
-    <span style="
-        font-size: 11px;
-        color: #8896A5;
-        font-family: 'Inter', sans-serif;
+        font-size: 12px;
+        color: #A1A1AA;
+        font-family: 'DM Sans', sans-serif;
         margin-left: auto;
-        border-left: 2px solid #E2E8F0;
-        padding-left: 16px;
-        line-height: 1.4;
-        max-width: 480px;
+        padding-left: 20px;
+        border-left: 1px solid #E4E4E7;
+        line-height: 1.5;
+        max-width: 420px;
         text-align: right;
-    ">Extrae entidades biomédicas · Detecta anomalías matemáticas · 
-    No evalúa calidad metodológica ni reemplaza el paper original</span>
+    ">Extrae entidades biomédicas · Detecta anomalías matemáticas<br>
+    No evalúa calidad metodológica · No reemplaza el paper original</span>
 </div>
 ''', unsafe_allow_html=True)
 
