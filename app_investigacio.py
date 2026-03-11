@@ -288,7 +288,7 @@ st.markdown('''
         border-radius: 4px;
         padding: 2px 6px;
         align-self: center;
-    ">v1.2.01</span>
+    ">v1.2.02</span>
     <span style="
         font-size: 18px;
         font-weight: 600;
@@ -2037,100 +2037,156 @@ if run_button:
     
     total_alerts = error_count + sensor_error_count
 
-    if final_df.empty:
-        if error_count > 0:
-            # Mostrar razón específica del filtro
-            main_error = errors[0][1] if errors else "Error desconocido"
-            if "Dato No Fiable" in main_error or "contenido no" in main_error:
-                reason = main_error.split(":")[-1].strip() if ":" in main_error else main_error
-                table_placeholder.markdown(
-                    f'<div class="alert-danger">❌ Filtro de Coherencia Activado: {reason}</div>',
-                    unsafe_allow_html=True,
-                )
-            else:
-                table_placeholder.markdown(
-                    f'<div class="alert-clinical alert-review">Error en extracción de biomarcadores: {main_error}</div>',
-                    unsafe_allow_html=True,
-                )
-        else:
-            table_placeholder.markdown(
-                '<div class="alert-clinical alert-acceptable">No se encontraron biomarcadores en los abstracts procesados</div>',
-                unsafe_allow_html=True,
-            )
-    else:
-        # Configurar tabla con códigos de colores semánticos
-        def highlight_cells(val):
-            if pd.isna(val):
-                return ""
-            # P-values significativos
-            if isinstance(val, (int, float)) and val < 0.05:
-                return "background-color: #E8F5E8; color: #2E7D32; font-weight: bold;"
-            return ""
-        
-        def highlight_status(val):
-            if val == "🔥":
-                return "background-color: #FFF3E0; color: #F57C00;"  # Amarillo para prioridad estadística
-            elif val == "🧬":
-                return "background-color: #E8EAF6; color: #3F51B5;"  # Violeta para biomarcador implícito
-            elif val == "✅":
-                return "background-color: #E8F5E8; color: #2E7D32;"  # Verde para fiable
-            elif val == "🔍":
-                return "background-color: #E1F5FE; color: #0277BD;"  # Azul para revisión manual
-            elif val == "⚠️":
-                return "background-color: #FFEBEE; color: #D32F2F;"  # Rojo para revisar
-            return ""
-        
-        def highlight_omission_risk(val):
-            if val == "Revisión Manual Requerida":
-                return "background-color: #FFEBEE; color: #D32F2F; font-weight: bold;"
-            return ""
-        
-        styled_df = (final_df.style
-                    .applymap(highlight_cells, subset=["P-value"])
-                    .applymap(highlight_status, subset=["Estado"])
-                    .applymap(highlight_omission_risk, subset=["Riesgo de Omisión"]))
-        table_placeholder.dataframe(styled_df, use_container_width=True, hide_index=True)
-        
-        # Veredicto según confianza_global y anomalías matemáticas
-        hay_criticos = any(
-            _safe_string(e.get("riesgo_omision", "")).upper() == "CRÍTICO"
-            for p in all_payloads for e in p.get("payload", {}).get("entidades_de_riesgo", [])
-        )
-
-        if hay_criticos:
-            st.markdown(
-                '<div class="verdict-critical">🚨 Anomalía matemática crítica detectada — '
-                'valores estadísticamente imposibles. Revisar antes de usar estos datos.</div>',
-                unsafe_allow_html=True
-            )
-        elif confidence_level < 60:
-            st.markdown(
-                '<div class="verdict-warning">🔍 Extracción incompleta — cobertura baja.</div>',
-                unsafe_allow_html=True
-            )
-        elif confidence_level < 85:
-            st.markdown(
-                '<div class="verdict-warning">⚠️ Extracción parcial — verificar en paper original.</div>',
-                unsafe_allow_html=True
-            )
-        else:
-            st.markdown(
-                '<div class="verdict-ok">✅ Extracción completa — métricas disponibles.</div>',
-                unsafe_allow_html=True
-            )
-
-    # Resumen compacto
-    summary_placeholder.markdown(
-        f"""
-        <div style="display: flex; gap: 8px; margin: 8px 0; font-size: 0.8rem;">
-            <span class="alert-success">✅ {entity_count} entitats</span>
-            <span class="alert-warning">⚠️ {error_count} errors</span>
-            <span class="alert-danger">🔍 {sensor_error_count} alertes físiques</span>
-            <span style="background: #E3F2FD; color: #1976D2; padding: 4px 8px;">🎯 {confidence_level}% confiança</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    # ── CÁLCULO PREVIO: veredicto y señales ───────────────────────
+    hay_criticos = any(
+        _safe_string(e.get("riesgo_omision", "")).upper() == "CRÍTICO"
+        for p in all_payloads for e in p.get("payload", {}).get("entidades_de_riesgo", [])
     )
+
+    all_señales = []
+    for p in all_payloads:
+        señales = p.get("payload", {}).get("señales_prioritarias", [])
+        all_señales.extend(señales)
+
+    # ── RIGHT COL: veredicto → señales → tabla ────────────────────
+    with table_placeholder.container():
+
+        # 1. VEREDICTO (primero siempre)
+        if hay_criticos:
+            st.markdown('''
+            <div class="verdict-critical">
+                🚨 <strong>Anomalía matemática crítica</strong> —
+                Se encontraron valores estadísticamente imposibles.
+                Revisar el abstract antes de usar estos datos.
+            </div>
+            ''', unsafe_allow_html=True)
+        elif confidence_level >= 85:
+            st.markdown('''
+            <div class="verdict-ok">
+                ✅ <strong>Extracción completa</strong> —
+                Métricas estructuradas disponibles.
+            </div>
+            ''', unsafe_allow_html=True)
+        elif confidence_level >= 60:
+            st.markdown('''
+            <div class="verdict-warning">
+                ⚠️ <strong>Extracción parcial</strong> —
+                Verificar métricas clave en el paper original.
+            </div>
+            ''', unsafe_allow_html=True)
+        else:
+            st.markdown('''
+            <div class="verdict-warning">
+                🔍 <strong>Cobertura baja</strong> —
+                El abstract puede no contener suficientes
+                datos estructurados.
+            </div>
+            ''', unsafe_allow_html=True)
+
+        # 2. SEÑALES PRIORITARIAS
+        if all_señales:
+            st.markdown(
+                '<div class="section-label">SEÑALES PRIORITARIAS</div>',
+                unsafe_allow_html=True
+            )
+            for señal in all_señales:
+                tipo = señal.get("tipo", "")
+                desc = señal.get("descripcion", "")
+                impacto = señal.get("impacto_clinico", "")
+                poblacion = señal.get("poblacion_afectada", "")
+
+                if impacto == "alto":
+                    color_border = "#991B1B"
+                    color_bg = "#FEF2F2"
+                    icon = "🔴"
+                elif impacto == "medio":
+                    color_border = "#92400E"
+                    color_bg = "#FFFBEB"
+                    icon = "🟡"
+                else:
+                    color_border = "#1A56DB"
+                    color_bg = "#EBF2FF"
+                    icon = "🔵"
+
+                st.markdown(f'''
+                <div style="
+                    background: {color_bg};
+                    border-left: 3px solid {color_border};
+                    border-radius: 0 6px 6px 0;
+                    padding: 10px 14px;
+                    margin: 6px 0;
+                    font-size: 13px;
+                    color: #0D1B2A;
+                ">
+                    <div style="font-weight:600; margin-bottom:4px;">
+                        {icon} {tipo.upper().replace("_", " ")}
+                    </div>
+                    <div>{desc}</div>
+                    <div style="font-size:11px; color:#8896A5; margin-top:4px;">
+                        Población: {poblacion}
+                    </div>
+                </div>
+                ''', unsafe_allow_html=True)
+
+        # 3. TABLA CLÍNICA
+        if final_df.empty:
+            if error_count > 0:
+                main_error = errors[0][1] if errors else "Error desconocido"
+                if "Dato No Fiable" in main_error or "contenido no" in main_error:
+                    reason = main_error.split(":")[-1].strip() if ":" in main_error else main_error
+                    st.markdown(
+                        f'<div class="alert-danger">❌ Filtro de Coherencia Activado: {reason}</div>',
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    st.markdown(
+                        f'<div class="alert-clinical alert-review">Error en extracción de biomarcadores: {main_error}</div>',
+                        unsafe_allow_html=True,
+                    )
+            else:
+                st.markdown(
+                    '<div class="alert-clinical alert-acceptable">No se encontraron biomarcadores en los abstracts procesados</div>',
+                    unsafe_allow_html=True,
+                )
+        else:
+            columnas_clinicas = [
+                "Estado",
+                "Entidad",
+                "Tipo",
+                "Población Afectada",
+                "Métricas",
+                "Riesgo de Omisión",
+                "Fragmento fuente",
+            ]
+            cols_mostrar = [c for c in columnas_clinicas if c in final_df.columns]
+            tabla_clinica = final_df[cols_mostrar]
+
+            def highlight_status(val):
+                if val == "🔥":
+                    return "background-color: #FFF3E0; color: #F57C00;"
+                elif val == "🧬":
+                    return "background-color: #E8EAF6; color: #3F51B5;"
+                elif val == "✅":
+                    return "background-color: #E8F5E8; color: #2E7D32;"
+                elif val == "🔍":
+                    return "background-color: #E1F5FE; color: #0277BD;"
+                elif val == "⚠️":
+                    return "background-color: #FFEBEE; color: #D32F2F;"
+                return ""
+
+            def highlight_omission_risk(val):
+                if val == "CRÍTICO":
+                    return "background-color: #FFEBEE; color: #D32F2F; font-weight: bold;"
+                return ""
+
+            styled_tabla = tabla_clinica.style.applymap(
+                highlight_status, subset=["Estado"]
+            )
+            if "Riesgo de Omisión" in tabla_clinica.columns:
+                styled_tabla = styled_tabla.applymap(
+                    highlight_omission_risk, subset=["Riesgo de Omisión"]
+                )
+            st.dataframe(styled_tabla, use_container_width=True, hide_index=True)
 
     # Controls de descàrrega i auditoria
     if not final_df.empty:
@@ -2162,8 +2218,6 @@ if run_button:
         )
 
     # JSON JERÁRQUICO DE ALTA DENSIDAD - SALIDA PRINCIPAL
-    st.markdown('<div class="section-label">STRUCTURED OUTPUT</div>', unsafe_allow_html=True)
-    
     # Crear JSON jerárquico exhaustivo para laboratorio
     if all_payloads:
         hierarchical_json = {
@@ -2237,13 +2291,11 @@ if run_button:
         
         # Mostrar JSON jerárquico principal
         with json_placeholder.container():
-            st.markdown('<div class="section-label">STRUCTURED OUTPUT</div>', unsafe_allow_html=True)
-            st.markdown(
-                f'<div class="json-display">{json.dumps(hierarchical_json, indent=2, ensure_ascii=False)}</div>',
-                unsafe_allow_html=True
-            )
-            
-            # Auditoría técnica en expander separado
+            with st.expander("📋 Structured JSON Output", expanded=False):
+                st.markdown(
+                    f'<div class="json-display">{json.dumps(hierarchical_json, indent=2, ensure_ascii=False)}</div>',
+                    unsafe_allow_html=True
+                )
             with st.expander("Technical Audit Data", expanded=False):
                 st.markdown("Complete API payload for technical audit:")
                 st.markdown(
@@ -2252,7 +2304,6 @@ if run_button:
                 )
     else:
         with json_placeholder.container():
-            st.markdown('<div class="section-label">STRUCTURED OUTPUT</div>', unsafe_allow_html=True)
             empty_json = {
                 "metadata": {
                     "abstracts_procesados": 0,
@@ -2271,10 +2322,11 @@ if run_button:
                 },
                 "mensaje": "Ninguna entidad de riesgo encontrada en los abstracts procesados"
             }
-            st.markdown(
-                f'<div class="json-display">{json.dumps(empty_json, indent=2, ensure_ascii=False)}</div>',
-                unsafe_allow_html=True
-            )
+            with st.expander("📋 Structured JSON Output", expanded=False):
+                st.markdown(
+                    f'<div class="json-display">{json.dumps(empty_json, indent=2, ensure_ascii=False)}</div>',
+                    unsafe_allow_html=True
+                )
 
     # Errores y alertas (compactos)
     if errors or sensor_alerts:
