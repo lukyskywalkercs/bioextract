@@ -278,6 +278,18 @@ st.markdown('''
         text-transform: uppercase;
     ">BIOEXTRACT</span>
     <span style="
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 9px;
+        font-weight: 400;
+        color: #8896A5;
+        letter-spacing: 1px;
+        background: #F7F9FC;
+        border: 1px solid #E2E8F0;
+        border-radius: 4px;
+        padding: 2px 6px;
+        align-self: center;
+    ">v1.2.01</span>
+    <span style="
         font-size: 18px;
         font-weight: 600;
         color: #0D1B2A;
