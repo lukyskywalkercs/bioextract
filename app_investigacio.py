@@ -325,11 +325,16 @@ header    { visibility: hidden; }
     height: 6px !important;
 }
 /* Texto de progreso */
+.stProgress {
+    margin-bottom: 4px !important;
+}
+/* Separación entre barra y texto */
 [data-testid="stText"] {
     font-size: 12px !important;
     color: #71717A !important;
     font-family: 'DM Sans', sans-serif !important;
-    margin-top: 6px !important;
+    margin-top: 8px !important;
+    display: block !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -387,7 +392,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.06</span>
+    ">v1.2.07</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -2572,6 +2577,39 @@ if run_button or results_to_show:
                     return "background-color: #FFEBEE; color: #D32F2F; font-weight: bold;"
                 return ""
 
+            def clean_metricas_display(val):
+                if not val or val == "NO DISPONIBLE":
+                    return val
+                prefijos = [
+                    "incidencia_anual_pct=",
+                    "mortalidad_pct=",
+                    "otros=",
+                    "n_absoluto=",
+                    "percentage of cases: ",
+                ]
+                partes = str(val).split(" | ")
+                resultado = []
+                for parte in partes:
+                    parte_limpia = parte.strip()
+                    for prefijo in prefijos:
+                        if parte_limpia.lower().startswith(
+                            prefijo.lower()
+                        ):
+                            parte_limpia = parte_limpia[len(prefijo):]
+                            break
+                    if parte_limpia.startswith("n=") and any(
+                        "n=" in r for r in resultado
+                    ):
+                        continue
+                    resultado.append(parte_limpia)
+                return " | ".join(resultado)
+
+            if "Métricas" in tabla_clinica.columns:
+                tabla_clinica = tabla_clinica.copy()
+                tabla_clinica["Métricas"] = tabla_clinica[
+                    "Métricas"
+                ].apply(clean_metricas_display)
+
             styled_tabla = tabla_clinica.style.applymap(
                 highlight_status, subset=["Estado"]
             )
@@ -2681,7 +2719,13 @@ if run_button or results_to_show:
                     json.dumps(hierarchical_json, indent=2, ensure_ascii=False),
                     language="json"
                 )
-            with st.expander("🔧 Datos de auditoría técnica", expanded=False):
+            with st.expander(
+                "🔧 Datos de auditoría técnica  ·  "
+                "Payload completo de la API — solo para "
+                "depuración técnica, no relevante para "
+                "uso clínico",
+                expanded=False
+            ):
                 st.markdown("Complete API payload for technical audit:")
                 st.code(
                     json.dumps(all_payloads, indent=2, ensure_ascii=False),
