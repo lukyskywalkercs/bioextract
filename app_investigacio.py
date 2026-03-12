@@ -2404,301 +2404,301 @@ if run_button or results_to_show:
     # ── RIGHT COL: 5 SECCIONES CLÍNICAS ──────────────────────────
     with table_placeholder.container():
 
-    # ══ SECCIÓN 1 — VEREDICTO DEL ANÁLISIS ════════════════════
-    st.markdown('''
-    <div class="section-label">VEREDICTO DEL ANÁLISIS</div>
-    <div style="font-size:11px; color:#8896A5; margin-bottom:10px;">
-        Evaluación automática de la integridad matemática del abstract.
-        No evalúa calidad metodológica.
-    </div>
-    ''', unsafe_allow_html=True)
-
-    if hay_criticos:
-        st.markdown(f'''
-        <div class="verdict-critical">
-            <div style="font-size:15px; font-weight:700; margin-bottom:4px;">
-                🚨 Anomalía matemática crítica detectada
-            </div>
-            <div style="font-size:12px;">
-                Se encontraron valores estadísticamente imposibles.
-                Revisar el abstract antes de usar estos datos en ningún análisis.
-            </div>
-            <div style="font-size:11px; margin-top:8px; opacity:0.8;">
-                Confianza de extracción: {confidence_level}%
-            </div>
-        </div>
-        ''', unsafe_allow_html=True)
-    elif confidence_level >= 85:
-        st.markdown(f'''
-        <div class="verdict-ok">
-            <div style="font-size:15px; font-weight:700; margin-bottom:4px;">
-                ✅ Extracción completa
-            </div>
-            <div style="font-size:12px;">
-                Métricas estructuradas disponibles.
-                Revisar señales prioritarias antes de usar los datos.
-            </div>
-            <div style="font-size:11px; margin-top:8px; opacity:0.8;">
-                Confianza de extracción: {confidence_level}%
-            </div>
-        </div>
-        ''', unsafe_allow_html=True)
-    elif confidence_level >= 60:
-        st.markdown(f'''
-        <div class="verdict-warning">
-            <div style="font-size:15px; font-weight:700; margin-bottom:4px;">
-                ⚠️ Extracción parcial
-            </div>
-            <div style="font-size:12px;">
-                Datos utilizables con precaución.
-                Verificar métricas clave en el paper original.
-            </div>
-            <div style="font-size:11px; margin-top:8px; opacity:0.8;">
-                Confianza de extracción: {confidence_level}%
-            </div>
-        </div>
-        ''', unsafe_allow_html=True)
-    else:
-        st.markdown(f'''
-        <div class="verdict-warning">
-            <div style="font-size:15px; font-weight:700; margin-bottom:4px;">
-                🔍 Cobertura baja
-            </div>
-            <div style="font-size:12px;">
-                El abstract no contiene suficientes datos estructurados
-                para este análisis.
-            </div>
-            <div style="font-size:11px; margin-top:8px; opacity:0.8;">
-                Confianza de extracción: {confidence_level}%
-            </div>
-        </div>
-        ''', unsafe_allow_html=True)
-
-    # ══ SECCIÓN 2 — SEÑALES PRIORITARIAS ══════════════════════
-    if all_señales:
+        # ══ SECCIÓN 1 — VEREDICTO DEL ANÁLISIS ════════════════════
         st.markdown('''
-        <div class="section-label" style="margin-top:36px; padding-top:28px; border-top:1px solid #E4E4E7;">SEÑALES PRIORITARIAS</div>
+        <div class="section-label">VEREDICTO DEL ANÁLISIS</div>
         <div style="font-size:11px; color:#8896A5; margin-bottom:10px;">
-            Hallazgos que requieren atención especial al leer el paper completo.
-            Generadas automáticamente por el sistema.
+            Evaluación automática de la integridad matemática del abstract.
+            No evalúa calidad metodológica.
         </div>
         ''', unsafe_allow_html=True)
 
-        for señal in all_señales:
-            tipo = señal.get("tipo", "").upper().replace("_", " ")
-            desc = señal.get("descripcion", "")
-            impacto = señal.get("impacto_clinico", "")
-            poblacion = señal.get("poblacion_afectada", "")
-            if impacto == "alto":
-                border, bg = "#991B1B", "#FEF2F2"
-                badge, badge_color = "🔴 IMPACTO ALTO", "#991B1B"
-            elif impacto == "medio":
-                border, bg = "#92400E", "#FFFBEB"
-                badge, badge_color = "🟡 IMPACTO MEDIO", "#92400E"
-            else:
-                border, bg = "#1A56DB", "#EBF2FF"
-                badge, badge_color = "🔵 IMPACTO BAJO", "#1A56DB"
-
+        if hay_criticos:
             st.markdown(f'''
-            <div style="background:{bg}; border-left:3px solid {border};
-                        border-radius:0 6px 6px 0; padding:12px 16px; margin:6px 0;">
-                <div style="display:flex; justify-content:space-between;
-                            align-items:center; margin-bottom:6px;">
-                    <span style="font-size:11px; font-weight:700;
-                                 color:#8896A5; letter-spacing:1px;">{tipo}</span>
-                    <span style="font-size:10px; font-weight:700;
-                                 color:{badge_color};">{badge}</span>
+            <div class="verdict-critical">
+                <div style="font-size:15px; font-weight:700; margin-bottom:4px;">
+                    🚨 Anomalía matemática crítica detectada
                 </div>
-                <div style="font-size:13px; color:#0D1B2A; line-height:1.5;">{desc}</div>
-                <div style="font-size:11px; color:#8896A5; margin-top:6px;">
-                    Población afectada: {poblacion}
+                <div style="font-size:12px;">
+                    Se encontraron valores estadísticamente imposibles.
+                    Revisar el abstract antes de usar estos datos en ningún análisis.
+                </div>
+                <div style="font-size:11px; margin-top:8px; opacity:0.8;">
+                    Confianza de extracción: {confidence_level}%
                 </div>
             </div>
             ''', unsafe_allow_html=True)
-
-    # ══ SECCIÓN 3 — MÉTRICAS ESTADÍSTICAS EXTRAÍDAS ═══════════
-    st.markdown('''
-    <div class="section-label" style="margin-top:36px; padding-top:28px; border-top:1px solid #E4E4E7;">
-        MÉTRICAS ESTADÍSTICAS EXTRAÍDAS
-    </div>
-    <div style="font-size:11px; color:#8896A5; margin-bottom:10px;">
-        Entidades biomédicas estructuradas extraídas del abstract.
-        🚨 indica anomalía matemática crítica. ✅ indica extracción verificada.
-    </div>
-    ''', unsafe_allow_html=True)
-
-    if final_df.empty:
-        if error_count > 0:
-            main_error = errors[0][1] if errors else "Error desconocido"
-            if "Dato No Fiable" in main_error or "contenido no" in main_error:
-                reason = main_error.split(":")[-1].strip() if ":" in main_error else main_error
-                st.markdown(
-                    f'<div class="alert-danger">❌ Filtro de Coherencia Activado: {reason}</div>',
-                    unsafe_allow_html=True,
-                )
-            else:
-                st.markdown(
-                    f'<div class="alert-clinical alert-review">Error en extracción de biomarcadores: {main_error}</div>',
-                    unsafe_allow_html=True,
-                )
+        elif confidence_level >= 85:
+            st.markdown(f'''
+            <div class="verdict-ok">
+                <div style="font-size:15px; font-weight:700; margin-bottom:4px;">
+                    ✅ Extracción completa
+                </div>
+                <div style="font-size:12px;">
+                    Métricas estructuradas disponibles.
+                    Revisar señales prioritarias antes de usar los datos.
+                </div>
+                <div style="font-size:11px; margin-top:8px; opacity:0.8;">
+                    Confianza de extracción: {confidence_level}%
+                </div>
+            </div>
+            ''', unsafe_allow_html=True)
+        elif confidence_level >= 60:
+            st.markdown(f'''
+            <div class="verdict-warning">
+                <div style="font-size:15px; font-weight:700; margin-bottom:4px;">
+                    ⚠️ Extracción parcial
+                </div>
+                <div style="font-size:12px;">
+                    Datos utilizables con precaución.
+                    Verificar métricas clave en el paper original.
+                </div>
+                <div style="font-size:11px; margin-top:8px; opacity:0.8;">
+                    Confianza de extracción: {confidence_level}%
+                </div>
+            </div>
+            ''', unsafe_allow_html=True)
         else:
-            st.markdown(
-                '<div class="alert-clinical alert-acceptable">No se encontraron biomarcadores en los abstracts procesados</div>',
-                unsafe_allow_html=True,
-            )
-    else:
-        columnas_clinicas = [
-            "Estado", "Entidad", "Tipo",
-            "Población Afectada", "Métricas", "Riesgo de Omisión",
-        ]
-        cols_ok = [c for c in columnas_clinicas if c in final_df.columns]
-        tabla_clinica = final_df[cols_ok]
-
-        def highlight_status(val):
-            if val == "🔥":
-                return "background-color: #FFF3E0; color: #F57C00;"
-            elif val == "🧬":
-                return "background-color: #E8EAF6; color: #3F51B5;"
-            elif val == "✅":
-                return "background-color: #E8F5E8; color: #2E7D32;"
-            elif val == "🔍":
-                return "background-color: #E1F5FE; color: #0277BD;"
-            elif val == "⚠️":
-                return "background-color: #FFEBEE; color: #D32F2F;"
-            return ""
-
-        def highlight_omission_risk(val):
-            if val == "CRÍTICO":
-                return "background-color: #FFEBEE; color: #D32F2F; font-weight: bold;"
-            return ""
-
-        styled_tabla = tabla_clinica.style.applymap(
-            highlight_status, subset=["Estado"]
-        )
-        if "Riesgo de Omisión" in tabla_clinica.columns:
-            styled_tabla = styled_tabla.applymap(
-                highlight_omission_risk, subset=["Riesgo de Omisión"]
-            )
-        st.dataframe(styled_tabla, use_container_width=True, hide_index=True)
-
-    # ══ SECCIÓN 4 — TRAZABILIDAD — FRAGMENTOS FUENTE ══════════
-    if not final_df.empty and "Fragmento fuente" in final_df.columns:
-        fragmentos_df = final_df[
-            final_df["Fragmento fuente"].notna() &
-            (final_df["Fragmento fuente"].astype(str).str.strip() != "")
-        ]
-        if not fragmentos_df.empty:
-            st.markdown('''
-            <div class="section-label" style="margin-top:36px; padding-top:28px; border-top:1px solid #E4E4E7;">
-                TRAZABILIDAD — FRAGMENTOS FUENTE
-            </div>
-            <div style="font-size:11px; color:#8896A5; margin-bottom:10px;">
-                Texto exacto del abstract del que se extrajo cada entidad.
-                Permite verificar la extracción contra el texto original.
+            st.markdown(f'''
+            <div class="verdict-warning">
+                <div style="font-size:15px; font-weight:700; margin-bottom:4px;">
+                    🔍 Cobertura baja
+                </div>
+                <div style="font-size:12px;">
+                    El abstract no contiene suficientes datos estructurados
+                    para este análisis.
+                </div>
+                <div style="font-size:11px; margin-top:8px; opacity:0.8;">
+                    Confianza de extracción: {confidence_level}%
+                </div>
             </div>
             ''', unsafe_allow_html=True)
 
-            for _, row in fragmentos_df.iterrows():
-                entidad = row.get("Entidad", "")
-                fragmento = str(row.get("Fragmento fuente", "")).strip()
-                estado = row.get("Estado", "")
-                metricas = row.get("Métricas", "")
-                es_critico = str(row.get("Riesgo de Omisión", "")) == "CRÍTICO"
-                border_color = "#991B1B" if es_critico else "#E2E8F0"
-                bg_color = "#FEF2F2" if es_critico else "#F7F9FC"
-                metricas_str = metricas if metricas and metricas != "NO DISPONIBLE" else ""
+        # ══ SECCIÓN 2 — SEÑALES PRIORITARIAS ══════════════════════
+        if all_señales:
+            st.markdown('''
+            <div class="section-label" style="margin-top:36px; padding-top:28px; border-top:1px solid #E4E4E7;">SEÑALES PRIORITARIAS</div>
+            <div style="font-size:11px; color:#8896A5; margin-bottom:10px;">
+                Hallazgos que requieren atención especial al leer el paper completo.
+                Generadas automáticamente por el sistema.
+            </div>
+            ''', unsafe_allow_html=True)
+
+            for señal in all_señales:
+                tipo = señal.get("tipo", "").upper().replace("_", " ")
+                desc = señal.get("descripcion", "")
+                impacto = señal.get("impacto_clinico", "")
+                poblacion = señal.get("poblacion_afectada", "")
+                if impacto == "alto":
+                    border, bg = "#991B1B", "#FEF2F2"
+                    badge, badge_color = "🔴 IMPACTO ALTO", "#991B1B"
+                elif impacto == "medio":
+                    border, bg = "#92400E", "#FFFBEB"
+                    badge, badge_color = "🟡 IMPACTO MEDIO", "#92400E"
+                else:
+                    border, bg = "#1A56DB", "#EBF2FF"
+                    badge, badge_color = "🔵 IMPACTO BAJO", "#1A56DB"
 
                 st.markdown(f'''
-                <div style="border:1px solid {border_color}; border-radius:6px;
-                            padding:10px 14px; margin:4px 0; background:{bg_color};">
+                <div style="background:{bg}; border-left:3px solid {border};
+                            border-radius:0 6px 6px 0; padding:12px 16px; margin:6px 0;">
                     <div style="display:flex; justify-content:space-between;
-                                align-items:baseline; margin-bottom:4px;">
-                        <span style="font-size:12px; font-weight:600;
-                                     color:#0D1B2A;">{estado} {entidad}</span>
-                        <span style="font-size:11px; color:#1A56DB;
-                                     font-family:monospace;">{metricas_str}</span>
+                                align-items:center; margin-bottom:6px;">
+                        <span style="font-size:11px; font-weight:700;
+                                     color:#8896A5; letter-spacing:1px;">{tipo}</span>
+                        <span style="font-size:10px; font-weight:700;
+                                     color:{badge_color};">{badge}</span>
                     </div>
-                    <div style="font-size:12px; color:#4A5568;
-                                font-style:italic; line-height:1.5;">
-                        "{fragmento}"
+                    <div style="font-size:13px; color:#0D1B2A; line-height:1.5;">{desc}</div>
+                    <div style="font-size:11px; color:#8896A5; margin-top:6px;">
+                        Población afectada: {poblacion}
                     </div>
                 </div>
                 ''', unsafe_allow_html=True)
 
-    # ══ SECCIÓN 5 — EXPORTAR RESULTADOS ═══════════════════════
-    st.markdown('''
-    <div class="section-label" style="margin-top:36px; padding-top:28px; border-top:1px solid #E4E4E7;">EXPORTAR RESULTADOS</div>
-    <div style="font-size:11px; color:#8896A5; margin-bottom:10px;">
-        Descarga los resultados para uso en tu investigación.
-        CSV para Excel/análisis estadístico. JSON para procesamiento programático.
-    </div>
-    ''', unsafe_allow_html=True)
+        # ══ SECCIÓN 3 — MÉTRICAS ESTADÍSTICAS EXTRAÍDAS ═══════════
+        st.markdown('''
+        <div class="section-label" style="margin-top:36px; padding-top:28px; border-top:1px solid #E4E4E7;">
+            MÉTRICAS ESTADÍSTICAS EXTRAÍDAS
+        </div>
+        <div style="font-size:11px; color:#8896A5; margin-bottom:10px;">
+            Entidades biomédicas estructuradas extraídas del abstract.
+            🚨 indica anomalía matemática crítica. ✅ indica extracción verificada.
+        </div>
+        ''', unsafe_allow_html=True)
 
-    exp_col1, exp_col2 = st.columns(2)
-    with exp_col1:
-        if not final_df.empty:
-            csv_buffer = io.StringIO()
-            final_df.to_csv(csv_buffer, index=False)
-            st.download_button(
-                "💾 Descargar CSV",
-                data=csv_buffer.getvalue(),
-                file_name="biomarcadores_extraidos.csv",
-                mime="text/csv",
-                use_container_width=True,
-            )
+        if final_df.empty:
+            if error_count > 0:
+                main_error = errors[0][1] if errors else "Error desconocido"
+                if "Dato No Fiable" in main_error or "contenido no" in main_error:
+                    reason = main_error.split(":")[-1].strip() if ":" in main_error else main_error
+                    st.markdown(
+                        f'<div class="alert-danger">❌ Filtro de Coherencia Activado: {reason}</div>',
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    st.markdown(
+                        f'<div class="alert-clinical alert-review">Error en extracción de biomarcadores: {main_error}</div>',
+                        unsafe_allow_html=True,
+                    )
+            else:
+                st.markdown(
+                    '<div class="alert-clinical alert-acceptable">No se encontraron biomarcadores en los abstracts procesados</div>',
+                    unsafe_allow_html=True,
+                )
         else:
-            empty_csv = io.StringIO()
-            pd.DataFrame(columns=[
-                "Estado", "Entidad", "Tipo", "Población Afectada",
-                "Métricas", "Riesgo de Omisión", "Fragmento fuente",
-            ]).to_csv(empty_csv, index=False)
-            st.download_button(
-                "💾 Descargar CSV (vacío)",
-                data=empty_csv.getvalue(),
-                file_name="biomarcadores_extraidos.csv",
-                mime="text/csv",
-                use_container_width=True,
-            )
-    with exp_col2:
-        if hierarchical_json:
-            st.download_button(
-                "📋 Descargar JSON estructurado",
-                data=json.dumps(hierarchical_json, indent=2, ensure_ascii=False),
-                file_name="bioextract_output.json",
-                mime="application/json",
-                use_container_width=True,
-            )
+            columnas_clinicas = [
+                "Estado", "Entidad", "Tipo",
+                "Población Afectada", "Métricas", "Riesgo de Omisión",
+            ]
+            cols_ok = [c for c in columnas_clinicas if c in final_df.columns]
+            tabla_clinica = final_df[cols_ok]
 
-    if hierarchical_json:
-        with st.expander("👁 Previsualizar JSON estructurado", expanded=False):
-            st.markdown('''
-            <div style="font-size:11px; color:#8896A5; margin-bottom:8px;">
-                Estructura de datos completa generada por BioExtract.
-                Formato estándar para integración con otros sistemas.
-            </div>
-            ''', unsafe_allow_html=True)
-            st.code(
-                json.dumps(hierarchical_json, indent=2, ensure_ascii=False),
-                language="json"
+            def highlight_status(val):
+                if val == "🔥":
+                    return "background-color: #FFF3E0; color: #F57C00;"
+                elif val == "🧬":
+                    return "background-color: #E8EAF6; color: #3F51B5;"
+                elif val == "✅":
+                    return "background-color: #E8F5E8; color: #2E7D32;"
+                elif val == "🔍":
+                    return "background-color: #E1F5FE; color: #0277BD;"
+                elif val == "⚠️":
+                    return "background-color: #FFEBEE; color: #D32F2F;"
+                return ""
+
+            def highlight_omission_risk(val):
+                if val == "CRÍTICO":
+                    return "background-color: #FFEBEE; color: #D32F2F; font-weight: bold;"
+                return ""
+
+            styled_tabla = tabla_clinica.style.applymap(
+                highlight_status, subset=["Estado"]
             )
-        with st.expander("🔧 Datos de auditoría técnica", expanded=False):
-            st.markdown("Complete API payload for technical audit:")
-            st.code(
-                json.dumps(all_payloads, indent=2, ensure_ascii=False),
-                language="json"
-            )
+            if "Riesgo de Omisión" in tabla_clinica.columns:
+                styled_tabla = styled_tabla.applymap(
+                    highlight_omission_risk, subset=["Riesgo de Omisión"]
+                )
+            st.dataframe(styled_tabla, use_container_width=True, hide_index=True)
+
+        # ══ SECCIÓN 4 — TRAZABILIDAD — FRAGMENTOS FUENTE ══════════
+        if not final_df.empty and "Fragmento fuente" in final_df.columns:
+            fragmentos_df = final_df[
+                final_df["Fragmento fuente"].notna() &
+                (final_df["Fragmento fuente"].astype(str).str.strip() != "")
+            ]
+            if not fragmentos_df.empty:
+                st.markdown('''
+                <div class="section-label" style="margin-top:36px; padding-top:28px; border-top:1px solid #E4E4E7;">
+                    TRAZABILIDAD — FRAGMENTOS FUENTE
+                </div>
+                <div style="font-size:11px; color:#8896A5; margin-bottom:10px;">
+                    Texto exacto del abstract del que se extrajo cada entidad.
+                    Permite verificar la extracción contra el texto original.
+                </div>
+                ''', unsafe_allow_html=True)
+
+                for _, row in fragmentos_df.iterrows():
+                    entidad = row.get("Entidad", "")
+                    fragmento = str(row.get("Fragmento fuente", "")).strip()
+                    estado = row.get("Estado", "")
+                    metricas = row.get("Métricas", "")
+                    es_critico = str(row.get("Riesgo de Omisión", "")) == "CRÍTICO"
+                    border_color = "#991B1B" if es_critico else "#E2E8F0"
+                    bg_color = "#FEF2F2" if es_critico else "#F7F9FC"
+                    metricas_str = metricas if metricas and metricas != "NO DISPONIBLE" else ""
+
+                    st.markdown(f'''
+                    <div style="border:1px solid {border_color}; border-radius:6px;
+                                padding:10px 14px; margin:4px 0; background:{bg_color};">
+                        <div style="display:flex; justify-content:space-between;
+                                    align-items:baseline; margin-bottom:4px;">
+                            <span style="font-size:12px; font-weight:600;
+                                         color:#0D1B2A;">{estado} {entidad}</span>
+                            <span style="font-size:11px; color:#1A56DB;
+                                         font-family:monospace;">{metricas_str}</span>
+                        </div>
+                        <div style="font-size:12px; color:#4A5568;
+                                    font-style:italic; line-height:1.5;">
+                            "{fragmento}"
+                        </div>
+                    </div>
+                    ''', unsafe_allow_html=True)
+
+        # ══ SECCIÓN 5 — EXPORTAR RESULTADOS ═══════════════════════
+        st.markdown('''
+        <div class="section-label" style="margin-top:36px; padding-top:28px; border-top:1px solid #E4E4E7;">EXPORTAR RESULTADOS</div>
+        <div style="font-size:11px; color:#8896A5; margin-bottom:10px;">
+            Descarga los resultados para uso en tu investigación.
+            CSV para Excel/análisis estadístico. JSON para procesamiento programático.
+        </div>
+        ''', unsafe_allow_html=True)
+
+        exp_col1, exp_col2 = st.columns(2)
+        with exp_col1:
+            if not final_df.empty:
+                csv_buffer = io.StringIO()
+                final_df.to_csv(csv_buffer, index=False)
+                st.download_button(
+                    "💾 Descargar CSV",
+                    data=csv_buffer.getvalue(),
+                    file_name="biomarcadores_extraidos.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                )
+            else:
+                empty_csv = io.StringIO()
+                pd.DataFrame(columns=[
+                    "Estado", "Entidad", "Tipo", "Población Afectada",
+                    "Métricas", "Riesgo de Omisión", "Fragmento fuente",
+                ]).to_csv(empty_csv, index=False)
+                st.download_button(
+                    "💾 Descargar CSV (vacío)",
+                    data=empty_csv.getvalue(),
+                    file_name="biomarcadores_extraidos.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                )
+        with exp_col2:
+            if hierarchical_json:
+                st.download_button(
+                    "📋 Descargar JSON estructurado",
+                    data=json.dumps(hierarchical_json, indent=2, ensure_ascii=False),
+                    file_name="bioextract_output.json",
+                    mime="application/json",
+                    use_container_width=True,
+                )
+
+        if hierarchical_json:
+            with st.expander("👁 Previsualizar JSON estructurado", expanded=False):
+                st.markdown('''
+                <div style="font-size:11px; color:#8896A5; margin-bottom:8px;">
+                    Estructura de datos completa generada por BioExtract.
+                    Formato estándar para integración con otros sistemas.
+                </div>
+                ''', unsafe_allow_html=True)
+                st.code(
+                    json.dumps(hierarchical_json, indent=2, ensure_ascii=False),
+                    language="json"
+                )
+            with st.expander("🔧 Datos de auditoría técnica", expanded=False):
+                st.markdown("Complete API payload for technical audit:")
+                st.code(
+                    json.dumps(all_payloads, indent=2, ensure_ascii=False),
+                    language="json"
+                )
 
     # Errores técnicos (compactos, fuera del flujo principal)
     if errors or sensor_alerts:
-    col_err, col_alert = st.columns(2)
-    if errors:
-        with col_err.expander(f"❌ Errores ({len(errors)})", expanded=False):
-            err_df = pd.DataFrame(errors, columns=["Fila", "Error"])
-            st.dataframe(err_df, use_container_width=True, hide_index=True)
-    if sensor_alerts:
-        with col_alert.expander(f"⚠️ Alertas ({len(sensor_alerts)})", expanded=False):
-            sensor_df = pd.DataFrame(sensor_alerts, columns=["Fila", "Alerta"])
-            st.dataframe(sensor_df, use_container_width=True, hide_index=True)
+        col_err, col_alert = st.columns(2)
+        if errors:
+            with col_err.expander(f"❌ Errores ({len(errors)})", expanded=False):
+                err_df = pd.DataFrame(errors, columns=["Fila", "Error"])
+                st.dataframe(err_df, use_container_width=True, hide_index=True)
+        if sensor_alerts:
+            with col_alert.expander(f"⚠️ Alertas ({len(sensor_alerts)})", expanded=False):
+                sensor_df = pd.DataFrame(sensor_alerts, columns=["Fila", "Alerta"])
+                st.dataframe(sensor_df, use_container_width=True, hide_index=True)
 
 # KPI BAR (valores 0 antes de ejecutar, reales después)
 with kpi_placeholder.container():
