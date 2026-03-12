@@ -392,7 +392,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.07</span>
+    ">v1.2.08</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -526,6 +526,18 @@ with ctrl3:
 file_df = pd.DataFrame()
 selected_column = None
 uploaded_file = None
+
+
+def load_file_data(uploaded_file) -> pd.DataFrame:
+    if uploaded_file is None:
+        return pd.DataFrame()
+    name = uploaded_file.name.lower()
+    if name.endswith(".csv"):
+        return pd.read_csv(uploaded_file)
+    if name.endswith(".xlsx") or name.endswith(".xls"):
+        return pd.read_excel(uploaded_file)
+    raise ValueError("Formato no soportado. Usa CSV o Excel.")
+
 
 if mode == "Masivo":
     st.markdown(
@@ -1982,17 +1994,6 @@ def normalize_results(
         )
     
     return rows, auditoria
-
-
-def load_file_data(uploaded_file) -> pd.DataFrame:
-    if uploaded_file is None:
-        return pd.DataFrame()
-    name = uploaded_file.name.lower()
-    if name.endswith(".csv"):
-        return pd.read_csv(uploaded_file)
-    if name.endswith(".xlsx") or name.endswith(".xls"):
-        return pd.read_excel(uploaded_file)
-    raise ValueError("Formato no soportado. Usa CSV o Excel.")
 
 
 # Inicializar contador de sesión
