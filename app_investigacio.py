@@ -366,7 +366,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.04</span>
+    ">v1.2.05</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -379,6 +379,69 @@ st.markdown('''
         text-align: right;
     ">Extrae entidades biomédicas · Detecta anomalías matemáticas<br>
     No evalúa calidad metodológica · No reemplaza el paper original</span>
+</div>
+''', unsafe_allow_html=True)
+
+st.markdown('''
+<div style="
+    background:#F4F4F5;
+    border:1px solid #E4E4E7;
+    border-radius:8px;
+    padding:12px 20px;
+    margin-bottom:16px;
+    display:flex;
+    gap:32px;
+    align-items:center;
+    flex-wrap:wrap;
+">
+    <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:16px;">🧬</span>
+        <div>
+            <div style="font-size:11px; font-weight:700;
+                        color:#09090B; letter-spacing:0.3px;">
+                EXTRACCIÓN DE ENTIDADES
+            </div>
+            <div style="font-size:11px; color:#71717A;">
+                Biomarcadores, fármacos, poblaciones
+            </div>
+        </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:16px;">📊</span>
+        <div>
+            <div style="font-size:11px; font-weight:700;
+                        color:#09090B; letter-spacing:0.3px;">
+                MÉTRICAS ESTADÍSTICAS
+            </div>
+            <div style="font-size:11px; color:#71717A;">
+                HR, OR, p-values, IC 95%
+            </div>
+        </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:16px;">🚨</span>
+        <div>
+            <div style="font-size:11px; font-weight:700;
+                        color:#09090B; letter-spacing:0.3px;">
+                DETECCIÓN DE ANOMALÍAS
+            </div>
+            <div style="font-size:11px; color:#71717A;">
+                Valores matemáticamente imposibles
+            </div>
+        </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:16px;">💾</span>
+        <div>
+            <div style="font-size:11px; font-weight:700;
+                        color:#09090B; letter-spacing:0.3px;">
+                EXPORT CSV + JSON
+            </div>
+            <div style="font-size:11px; color:#71717A;">
+                Datos estructurados descargables
+            </div>
+        </div>
+    </div>
 </div>
 ''', unsafe_allow_html=True)
 
@@ -1925,49 +1988,80 @@ confidence_level = 0
 kpi_placeholder = st.empty()
 
 # ÁREA PRINCIPAL MÉDICA
-left_col, right_col = st.columns([1, 1.6], gap="medium")
-
-with left_col:
-    st.markdown('<div class="section-label">ABSTRACT INPUT</div>', unsafe_allow_html=True)
-    abstract_text = st.text_area(
-        "",
-        placeholder="Introducir abstract científico para análisis biomédico...",
-        height=380,
-        key="abstract_input"
-    )
-    progress_placeholder = st.empty()
-
-with right_col:
-    st.markdown('<div class="section-label">EXTRACTION RESULTS</div>', unsafe_allow_html=True)
-    table_placeholder = st.empty()
-    summary_placeholder = st.empty()
-    if not run_button:
-        table_placeholder.markdown(
-            '''
-            <div style="
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                height: 380px;
-                color: #8896A5;
-                text-align: center;
-                border: 1px dashed #E2E8F0;
-                border-radius: 8px;
-                gap: 12px;
-                padding: 0 16px;
-            ">
-                <div style="font-size: 32px; opacity: 0.3;">⬡</div>
-                <div style="font-size: 13px; font-weight: 500;">
-                    Introduce un abstract y pulsa Ejecutar
-                </div>
-                <div style="font-size: 11px; color: #8896A5;">
-                    Los resultados aparecerán aquí
-                </div>
-            </div>
-            ''',
-            unsafe_allow_html=True,
-        )
+# ZONA INPUT
+st.markdown('''
+<div style="
+    background:#FFFFFF;
+    border:1px solid #E4E4E7;
+    border-radius:10px;
+    padding:20px 24px;
+    margin-bottom:16px;
+    box-shadow:0 1px 3px rgba(0,0,0,0.06);
+">
+    <div class="section-label">ABSTRACT INPUT</div>
+''', unsafe_allow_html=True)
+abstract_text = st.text_area(
+    "",
+    placeholder="Introducir abstract científico para análisis biomédico...",
+    height=160,
+    key="abstract_input"
+)
+st.markdown('</div>', unsafe_allow_html=True)
+progress_placeholder = st.empty()
+# ZONA RESULTADOS
+st.markdown('''
+<div style="
+    background:#FFFFFF;
+    border:1px solid #E4E4E7;
+    border-radius:10px;
+    padding:20px 24px;
+    box-shadow:0 1px 3px rgba(0,0,0,0.06);
+">
+    <div class="section-label">EXTRACTION RESULTS</div>
+''', unsafe_allow_html=True)
+table_placeholder = st.empty()
+summary_placeholder = st.empty()
+if not run_button:
+    table_placeholder.markdown('''
+    <div style="
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        justify-content:center;
+        padding:48px 24px;
+        text-align:center;
+        gap:16px;
+    ">
+        <div style="font-size:36px; opacity:0.15;">⬡</div>
+        <div style="font-size:14px; font-weight:600;
+                    color:#3F3F46;">
+            Introduce un abstract y pulsa Ejecutar
+        </div>
+        <div style="font-size:12px; color:#A1A1AA;
+                    max-width:320px; line-height:1.6;">
+            BioExtract extrae entidades biomédicas,
+            detecta anomalías matemáticas y estructura
+            los datos para triaje de literatura científica.
+        </div>
+        <div style="display:flex; gap:8px;
+                    flex-wrap:wrap; justify-content:center;
+                    margin-top:8px;">
+            <span style="background:#F4F4F5; border-radius:20px;
+                         padding:4px 14px; font-size:11px;
+                         color:#71717A;">Veredicto inmediato</span>
+            <span style="background:#F4F4F5; border-radius:20px;
+                         padding:4px 14px; font-size:11px;
+                         color:#71717A;">Señales prioritarias</span>
+            <span style="background:#F4F4F5; border-radius:20px;
+                         padding:4px 14px; font-size:11px;
+                         color:#71717A;">HR · OR · p-values</span>
+            <span style="background:#F4F4F5; border-radius:20px;
+                         padding:4px 14px; font-size:11px;
+                         color:#71717A;">Export CSV + JSON</span>
+        </div>
+    </div>
+    ''', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
 
 # Area inferior para controles adicionales
 download_placeholder = st.empty()
@@ -2253,7 +2347,7 @@ if run_button:
         # ══ SECCIÓN 2 — SEÑALES PRIORITARIAS ══════════════════════
         if all_señales:
             st.markdown('''
-            <div class="section-label" style="margin-top:20px;">SEÑALES PRIORITARIAS</div>
+            <div class="section-label" style="margin-top:36px; padding-top:28px; border-top:1px solid #E4E4E7;">SEÑALES PRIORITARIAS</div>
             <div style="font-size:11px; color:#8896A5; margin-bottom:10px;">
                 Hallazgos que requieren atención especial al leer el paper completo.
                 Generadas automáticamente por el sistema.
@@ -2294,7 +2388,7 @@ if run_button:
 
         # ══ SECCIÓN 3 — MÉTRICAS ESTADÍSTICAS EXTRAÍDAS ═══════════
         st.markdown('''
-        <div class="section-label" style="margin-top:20px;">
+        <div class="section-label" style="margin-top:36px; padding-top:28px; border-top:1px solid #E4E4E7;">
             MÉTRICAS ESTADÍSTICAS EXTRAÍDAS
         </div>
         <div style="font-size:11px; color:#8896A5; margin-bottom:10px;">
@@ -2365,7 +2459,7 @@ if run_button:
             ]
             if not fragmentos_df.empty:
                 st.markdown('''
-                <div class="section-label" style="margin-top:20px;">
+                <div class="section-label" style="margin-top:36px; padding-top:28px; border-top:1px solid #E4E4E7;">
                     TRAZABILIDAD — FRAGMENTOS FUENTE
                 </div>
                 <div style="font-size:11px; color:#8896A5; margin-bottom:10px;">
@@ -2403,7 +2497,7 @@ if run_button:
 
         # ══ SECCIÓN 5 — EXPORTAR RESULTADOS ═══════════════════════
         st.markdown('''
-        <div class="section-label" style="margin-top:20px;">EXPORTAR RESULTADOS</div>
+        <div class="section-label" style="margin-top:36px; padding-top:28px; border-top:1px solid #E4E4E7;">EXPORTAR RESULTADOS</div>
         <div style="font-size:11px; color:#8896A5; margin-bottom:10px;">
             Descarga los resultados para uso en tu investigación.
             CSV para Excel/análisis estadístico. JSON para procesamiento programático.
@@ -2453,15 +2547,15 @@ if run_button:
                     Formato estándar para integración con otros sistemas.
                 </div>
                 ''', unsafe_allow_html=True)
-                st.markdown(
-                    f'<div class="json-display">{json.dumps(hierarchical_json, indent=2, ensure_ascii=False)}</div>',
-                    unsafe_allow_html=True
+                st.code(
+                    json.dumps(hierarchical_json, indent=2, ensure_ascii=False),
+                    language="json"
                 )
             with st.expander("🔧 Datos de auditoría técnica", expanded=False):
                 st.markdown("Complete API payload for technical audit:")
-                st.markdown(
-                    f'<div class="json-display">{json.dumps(all_payloads, indent=2, ensure_ascii=False)}</div>',
-                    unsafe_allow_html=True
+                st.code(
+                    json.dumps(all_payloads, indent=2, ensure_ascii=False),
+                    language="json"
                 )
 
     # Errores técnicos (compactos, fuera del flujo principal)
