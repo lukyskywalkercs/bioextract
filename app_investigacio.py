@@ -392,7 +392,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.08</span>
+    ">v1.2.09</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -1996,6 +1996,80 @@ def normalize_results(
     return rows, auditoria
 
 
+def build_txt_report(all_payloads, final_df):
+    lines_txt = []
+    lines_txt.append("BIOEXTRACT - INFORME DE EXTRACCION")
+    lines_txt.append(
+        "Generado: " + pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')
+    )
+    lines_txt.append("Abstracts procesados: " + str(len(all_payloads)))
+    lines_txt.append("=" * 55)
+    lines_txt.append("")
+    for i, p in enumerate(all_payloads, start=1):
+        _payload = p.get("payload", {})
+        _abstract_id = p.get("ID_Abstract", "file_" + str(i))
+        _entidades = _payload.get("entidades_de_riesgo", [])
+        _confianza = _payload.get("nivel_confianza", 0)
+        _senales = _payload.get("senales_prioritarias", [])
+        _gaps = _payload.get("gaps_criticos", {})
+        _criticos = [
+            e for e in _entidades
+            if str(e.get("riesgo_omision", "")).upper() == "CRITICO"
+        ]
+        if _criticos:
+            _veredicto = "ANOMALIA CRITICA"
+        elif _confianza >= 85:
+            _veredicto = "EXTRACCION COMPLETA"
+        elif _confianza >= 60:
+            _veredicto = "EXTRACCION PARCIAL"
+        else:
+            _veredicto = "COBERTURA BAJA"
+        lines_txt.append("ABSTRACT " + str(i) + " - " + str(_abstract_id))
+        lines_txt.append(_veredicto + " - " + str(_confianza) + "% confianza")
+        lines_txt.append("-" * 55)
+        if _criticos:
+            lines_txt.append("ANOMALIAS CRITICAS:")
+            for e in _criticos:
+                lines_txt.append(
+                    "   * " + str(e.get("nombre", "")) + " - " + str(e.get("metricas_completas", ""))
+                )
+            lines_txt.append("")
+        if _senales:
+            lines_txt.append("SENALES PRIORITARIAS:")
+            for s in _senales:
+                _impacto = s.get("impacto_clinico", "").upper()
+                _tipo = s.get("tipo", "").upper()
+                _desc = s.get("descripcion", "")
+                lines_txt.append("   [" + _impacto + "] " + _tipo)
+                lines_txt.append("   " + _desc)
+            lines_txt.append("")
+        _metricas_entidades = [
+            e for e in _entidades
+            if e.get("metricas_completas", "") not in ["NO DISPONIBLE", "", None]
+        ]
+        if _metricas_entidades:
+            lines_txt.append("METRICAS EXTRAIDAS:")
+            for e in _metricas_entidades:
+                _nombre = str(e.get("nombre", ""))
+                _metricas = str(e.get("metricas_completas", ""))
+                _metricas = _metricas.replace("otros=", "").replace(
+                    "incidencia_anual_pct=", "").replace("mortalidad_pct=", "")
+                lines_txt.append("   * " + _nombre + ": " + _metricas)
+            lines_txt.append("")
+        _gaps_relevantes = {
+            k: v for k, v in _gaps.items()
+            if v and v != "NO DISPONIBLE"
+        }
+        if _gaps_relevantes:
+            lines_txt.append("GAPS DETECTADOS:")
+            for k, v in _gaps_relevantes.items():
+                lines_txt.append("   * " + str(k) + ": " + str(v))
+            lines_txt.append("")
+        lines_txt.append("=" * 55)
+        lines_txt.append("")
+    return "\n".join(lines_txt)
+
+
 # Inicializar contador de sesión
 if "demo_count" not in st.session_state:
     st.session_state.demo_count = 0
@@ -2664,6 +2738,103 @@ if run_button or results_to_show:
                     </div>
                     ''', unsafe_allow_html=True)
 
+        # ══ SECCIÓN MASIVO — RESUMEN + DETALLE ══════════════════
+        if mode == "Masivo" and all_payloads:
+            st.markdown(
+                '<div class="section-label" style="margin-top:36px; padding-top:28px; border-top:1px solid #E4E4E7;">RESUMEN EJECUTIVO</div>'
+                '<div style="font-size:11px; color:#71717A; margin-bottom:10px;">Una fila por abstract. Ordena por Anom\u00edas cr\u00edticas para priorizar revisi\u00f3n.</div>',
+                unsafe_allow_html=True
+            )
+            resumen_rows = []
+            for i, p in enumerate(all_payloads, start=1):
+                _payload = p.get("payload", {})
+                _abstract_id = p.get("ID_Abstract", "file_" + str(i))
+                _entidades = _payload.get("entidades_de_riesgo", [])
+                _confianza = _payload.get("nivel_confianza", 0)
+                _senales = _payload.get("senales_prioritarias", _payload.get("se\u00f1ales_prioritarias", []))
+                _criticos = sum(
+                    1 for e in _entidades
+                    if str(e.get("riesgo_omision", "")).upper() == "CR\u00cdTICO"
+                )
+                _senales_altas = sum(
+                    1 for s in _senales
+                    if s.get("impacto_clinico") == "alto"
+                )
+                if _criticos > 0:
+                    _estado = "\U0001f6a8 Anomal\u00eda cr\u00edtica"
+                elif _confianza >= 85:
+                    _estado = "\u2705 Extracci\u00f3n completa"
+                elif _confianza >= 60:
+                    _estado = "\u26a0\ufe0f Extracci\u00f3n parcial"
+                else:
+                    _estado = "\U0001f50d Cobertura baja"
+                resumen_rows.append({
+                    "#": i,
+                    "Abstract": _abstract_id,
+                    "Estado": _estado,
+                    "Entidades": len(_entidades),
+                    "Confianza": str(_confianza) + "%",
+                    "Anom\u00edas cr\u00edticas": _criticos,
+                    "Se\u00f1ales alto impacto": _senales_altas,
+                })
+            resumen_df = pd.DataFrame(resumen_rows)
+            st.dataframe(resumen_df, use_container_width=True, hide_index=True)
+
+            st.markdown(
+                '<div class="section-label" style="margin-top:36px; padding-top:28px; border-top:1px solid #E4E4E7;">DETALLE POR ABSTRACT</div>'
+                '<div style="font-size:11px; color:#71717A; margin-bottom:10px;">Expande cada abstract para ver el detalle completo de la extracci\u00f3n.</div>',
+                unsafe_allow_html=True
+            )
+            for i, p in enumerate(all_payloads, start=1):
+                _payload = p.get("payload", {})
+                _abstract_id = p.get("ID_Abstract", "file_" + str(i))
+                _entidades = _payload.get("entidades_de_riesgo", [])
+                _confianza = _payload.get("nivel_confianza", 0)
+                _senales = _payload.get("senales_prioritarias", _payload.get("se\u00f1ales_prioritarias", []))
+                _criticos = sum(
+                    1 for e in _entidades
+                    if str(e.get("riesgo_omision", "")).upper() == "CR\u00cdTICO"
+                )
+                if _criticos > 0:
+                    _icono = "\U0001f6a8"
+                elif _confianza >= 85:
+                    _icono = "\u2705"
+                elif _confianza >= 60:
+                    _icono = "\u26a0\ufe0f"
+                else:
+                    _icono = "\U0001f50d"
+                _label = (
+                    _icono + " Abstract " + str(i) + " \u2014 " + str(_abstract_id) +
+                    " \u2014 " + str(_confianza) + "% confianza" +
+                    (" \u2014 " + str(_criticos) + " CR\u00cdTICO(S)" if _criticos > 0 else "")
+                )
+                with st.expander(_label, expanded=False):
+                    if _senales:
+                        st.markdown("**Se\u00f1ales prioritarias:**")
+                        for s in _senales:
+                            _tipo = s.get("tipo", "").upper()
+                            _desc = s.get("descripcion", "")
+                            _impacto = s.get("impacto_clinico", "")
+                            _badge = "\U0001f534" if _impacto == "alto" else "\U0001f7e1" if _impacto == "medio" else "\U0001f535"
+                            st.markdown(_badge + " **" + _tipo + "** \u2014 " + _desc)
+                    if not final_df.empty:
+                        _filas_abstract = [
+                            row for _, row in final_df.iterrows()
+                            if row.get("ID_Abstract") == _abstract_id
+                        ]
+                        if _filas_abstract:
+                            _df_abstract = pd.DataFrame(_filas_abstract)
+                            _cols_mostrar = [
+                                c for c in ["Estado", "Entidad", "Tipo", "M\u00e9tricas", "Riesgo de Omisi\u00f3n"]
+                                if c in _df_abstract.columns
+                            ]
+                            if _cols_mostrar:
+                                st.dataframe(
+                                    _df_abstract[_cols_mostrar],
+                                    use_container_width=True,
+                                    hide_index=True
+                                )
+
         # ══ SECCIÓN 5 — EXPORTAR RESULTADOS ═══════════════════════
         st.markdown('''
         <div class="section-label" style="margin-top:36px; padding-top:28px; border-top:1px solid #E4E4E7;">EXPORTAR RESULTADOS</div>
@@ -2673,7 +2844,7 @@ if run_button or results_to_show:
         </div>
         ''', unsafe_allow_html=True)
 
-        exp_col1, exp_col2 = st.columns(2)
+        exp_col1, exp_col2, exp_col3 = st.columns(3)
         with exp_col1:
             if not final_df.empty:
                 csv_buffer = io.StringIO()
@@ -2707,6 +2878,15 @@ if run_button or results_to_show:
                     mime="application/json",
                     use_container_width=True,
                 )
+        with exp_col3:
+            _txt_report = build_txt_report(all_payloads, final_df)
+            st.download_button(
+                "📄 Descargar informe TXT",
+                data=_txt_report.encode("utf-8"),
+                file_name="bioextract_informe.txt",
+                mime="text/plain",
+                use_container_width=True,
+            )
 
         if hierarchical_json:
             with st.expander("👁 Previsualizar JSON estructurado", expanded=False):
