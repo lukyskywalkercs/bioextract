@@ -604,7 +604,21 @@ REGLAS:
 6. Genera señales_prioritarias para hallazgos relevantes:
    paradojas, disparidades, tendencias emergentes, vacios de conocimiento.
 
-REGLA 7 — CONTAMINACIÓN DE PROTOCOLO:
+REGLA 7 — riesgo_omision:
+Asigna "CRÍTICO" SOLO si el valor numérico extraído es matemáticamente imposible:
+- Supervivencia o cualquier porcentaje > 100
+- HR <= 0
+- OR <= 0
+- NNT < 1
+- p-value < 0 o p-value > 1
+- Intervalo de confianza donde ci_lower >= ci_upper
+Asigna "Aceptable" en TODOS los demás casos, incluyendo:
+- Texto libre sin número concreto ("significant increase", "continues to rise",
+  "leading causes", cualquier descripción cualitativa)
+- Porcentajes entre 0% y 100%
+- Valores posibles aunque sean altos o bajos dentro de su rango fisiológico
+
+REGLA 8 — CONTAMINACIÓN DE PROTOCOLO:
 Si el abstract menciona cualquier parámetro de procesamiento
 de muestras, extráelo como entidad separada con tipo="protocolo"
 y relacion_causal="contaminacion". No lo omitas aunque parezca
@@ -646,6 +660,7 @@ FORMATO JSON (respeta las claves exactas):
       "poblacion_afectada": ["grupo"],
       "relacion_causal": "causal|correlacional|asociativo|parcial",
       "cualificador_original": "texto con partly/only/significantly si existe",
+      "riesgo_omision": "CRÍTICO|Aceptable",
       "fragmento_fuente": "texto exacto del abstract"
     }}
   ],
