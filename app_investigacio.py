@@ -957,6 +957,33 @@ def validate_physical_limits_hierarchical(entidad: Dict[str, Any]) -> List[str]:
                 f"Anomalía matemática: HR={hr} fuera de su IC=[{ci_lower}, {ci_upper}] para '{nombre}'"
             )
 
+    # 7. Porcentaje/supervivencia > 100 en campos numéricos de tasa
+    PCT_KEYS = [
+        "mortalidad_pct", "incidencia_anual_pct", "diagnostico_estadio_pct",
+        "reduccion_mortalidad_pct", "supervivencia", "mortalidad",
+    ]
+    for pct_key in PCT_KEYS:
+        pct_val = _safe_float(metricas.get(pct_key))
+        if pct_val is not None and pct_val > 100.0:
+            errors.append(
+                f"Anomalía matemática: {pct_key}={pct_val}% > 100 para '{nombre}' — imposible"
+            )
+            metricas[pct_key] = None
+
+    # 8. Porcentaje > 100 en campo otros (texto libre)
+    #    Solo se marca CRÍTICO si se extrae un número concreto Y es > 100.
+    #    "up to 90% survival rate" → pct=90 ≤ 100 → NO CRÍTICO
+    #    "OS=127%"                 → pct=127 > 100 → CRÍTICO
+    otros_valor = str(metricas.get("otros", "") or "")
+    if otros_valor:
+        match_pct = re.search(r'(\d+\.?\d*)\s*%', otros_valor)
+        if match_pct:
+            pct = float(match_pct.group(1))
+            if pct > 100.0:
+                errors.append(
+                    f"Anomalía matemática: porcentaje={pct}% > 100 en campo 'otros' para '{nombre}' — imposible"
+                )
+
     entidad["metricas"] = metricas
     return errors
 
