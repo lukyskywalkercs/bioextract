@@ -392,7 +392,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.09</span>
+    ">v1.2.10</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
