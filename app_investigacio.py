@@ -89,11 +89,20 @@ header    { visibility: hidden; }
     letter-spacing: 0.2px !important;
     box-shadow: var(--shadow-sm) !important;
     font-family: 'DM Sans', sans-serif !important;
-    transition: background 0.15s ease !important;
+    transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease !important;
 }
 .stButton button[kind="primary"]:hover {
     background: var(--accent-hover) !important;
     box-shadow: var(--shadow-md) !important;
+    transform: translateY(-1px) !important;
+}
+.stButton button[kind="primary"]:active {
+    transform: translateY(1px) !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,.06) !important;
+}
+.stButton button[kind="primary"]:focus-visible {
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25) !important;
 }
 
 /* ── KPI metric cards ────────────────────────────── */
@@ -103,6 +112,11 @@ header    { visibility: hidden; }
     border-radius: var(--radius) !important;
     padding: 16px 20px !important;
     box-shadow: var(--shadow-sm) !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+}
+[data-testid="metric-container"]:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: var(--shadow-md) !important;
 }
 [data-testid="stMetricValue"] {
     font-family: 'DM Mono', monospace !important;
@@ -235,7 +249,7 @@ header    { visibility: hidden; }
     padding: 10px 12px !important;
     font-family: 'DM Sans', sans-serif !important;
 }
-.stDataFrame tbody tr { border-bottom: 1px solid var(--border) !important; }
+.stDataFrame tbody tr { border-bottom: 1px solid var(--border) !important; transition: background 0.1s ease !important; }
 .stDataFrame tbody tr:hover { background: var(--accent-dim) !important; }
 .stDataFrame tbody td {
     font-size: 12px !important;
@@ -271,6 +285,10 @@ header    { visibility: hidden; }
     font-weight: 500 !important;
     color: var(--ink-2) !important;
     font-family: 'DM Sans', sans-serif !important;
+    transition: color 0.15s ease !important;
+}
+[data-testid="stExpander"] summary:hover {
+    color: var(--ink) !important;
 }
 
 /* ── Select / text inputs ───────────────────────── */
@@ -282,6 +300,13 @@ header    { visibility: hidden; }
     border: 1px solid var(--border) !important;
     background: var(--surface) !important;
     color: var(--ink) !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+[data-testid="stSelectbox"] select:focus,
+[data-testid="stTextInput"] input:focus {
+    border-color: var(--accent) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
 }
 
 /* ── Tabs ───────────────────────────────────────── */
@@ -306,10 +331,17 @@ header    { visibility: hidden; }
     font-size: 13px !important;
     font-weight: 500 !important;
     box-shadow: var(--shadow-sm) !important;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease !important;
 }
 [data-testid="stDownloadButton"] button:hover {
     background: var(--surface-2) !important;
     border-color: var(--border-2) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: var(--shadow-md) !important;
+}
+[data-testid="stDownloadButton"] button:active {
+    transform: translateY(1px) !important;
+    box-shadow: 0 1px 2px rgba(0,0,0,.06) !important;
 }
 
 /* Progress bar */
@@ -345,6 +377,47 @@ header    { visibility: hidden; }
     padding: 4px 0;
     margin-bottom: 20px;
     box-shadow: var(--shadow-sm);
+}
+
+/* ── Keyframes ──────────────────────────────────── */
+@keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0);   }
+}
+@keyframes pulseHex {
+    0%, 100% { opacity: 0.15; }
+    50%       { opacity: 0.28; }
+}
+
+/* ── Verdict cards — entrance ───────────────────── */
+.verdict-ok,
+.verdict-warning,
+.verdict-critical {
+    animation: fadeSlideUp 0.2s ease-out both;
+}
+
+/* ── Empty state icon — breathing ──────────────── */
+.pulse-hex {
+    font-size: 36px;
+    animation: pulseHex 3s ease-in-out infinite;
+}
+
+/* ── Signal cards ───────────────────────────────── */
+.signal-card {
+    transition: border-left-width 0.15s ease, box-shadow 0.15s ease !important;
+}
+.signal-card:hover {
+    border-left-width: 4px !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+/* ── Fragment source cards ──────────────────────── */
+.fragment-card {
+    transition: background 0.15s ease, box-shadow 0.15s ease !important;
+}
+.fragment-card:hover {
+    box-shadow: var(--shadow-sm) !important;
+    filter: brightness(0.98);
 }
 </style>
 """, unsafe_allow_html=True)
@@ -402,7 +475,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.12</span>
+    ">v1.2.13</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -2137,7 +2210,7 @@ if not run_button:
         text-align:center;
         gap:16px;
     ">
-        <div style="font-size:36px; opacity:0.15;">⬡</div>
+        <div class="pulse-hex">⬡</div>
         <div style="font-size:14px; font-weight:600;
                     color:#3F3F46;">
             Introduce un abstract y pulsa Ejecutar
@@ -2540,7 +2613,7 @@ if run_button or results_to_show:
                     badge, badge_color = "🔵 IMPACTO BAJO", "#1A56DB"
 
                 st.markdown(f'''
-                <div style="background:{bg}; border-left:3px solid {border};
+                <div class="signal-card" style="background:{bg}; border-left:3px solid {border};
                             border-radius:0 6px 6px 0; padding:12px 16px; margin:6px 0;">
                     <div style="display:flex; justify-content:space-between;
                                 align-items:center; margin-bottom:6px;">
@@ -2682,7 +2755,7 @@ if run_button or results_to_show:
                     metricas_str = metricas if metricas and metricas != "NO DISPONIBLE" else ""
 
                     st.markdown(f'''
-                    <div style="border:1px solid {border_color}; border-radius:6px;
+                    <div class="fragment-card" style="border:1px solid {border_color}; border-radius:6px;
                                 padding:10px 14px; margin:4px 0; background:{bg_color};">
                         <div style="display:flex; justify-content:space-between;
                                     align-items:baseline; margin-bottom:4px;">
