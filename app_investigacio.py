@@ -158,16 +158,11 @@ header    { visibility: hidden; }
     font-variant-numeric: tabular-nums;
 }
 
-/* ── Run button — centered, auto-width ──────────── */
-div[data-testid="stButton"] {
-    display: flex !important;
-    justify-content: center !important;
-    margin: 8px 0 !important;
-}
+/* ── Run button ──────────────────────────────────── */
 div[data-testid="stButton"] > button[kind="primary"] {
-    width: auto !important;
     min-width: 160px !important;
     padding: 10px 32px !important;
+    width: 100% !important;
 }
 
 /* ── API key — max-width 400px, left-aligned ─────── */
@@ -515,7 +510,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.16</span>
+    ">v1.2.17</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -534,25 +529,38 @@ st.markdown('''
 
 
 
-# CONTROLES HORIZONTALES
 run_button = False
-ctrl1, ctrl2 = st.columns([3, 1.5])
 
-with ctrl1:
-    user_api_key = st.text_input(
-        "api_key_input",
-        type="password",
-        placeholder="API key de Gemini (opcional — 5 análisis gratuitos sin key)",
-        label_visibility="collapsed"
-    )
+# ── 1. TEXTAREA — acción primaria ────────────────────
+abstract_text = st.text_area(
+    "",
+    placeholder="Introducir abstract científico para análisis biomédico...",
+    height=160,
+    key="abstract_input"
+)
 
-with ctrl2:
+# ── 2. FILA: Modo + Ejecutar ─────────────────────────
+ctrl_mode, ctrl_btn = st.columns([2, 3])
+with ctrl_mode:
     mode = st.radio(
         "modo",
         options=["Individual", "Masivo"],
         horizontal=True,
         label_visibility="collapsed"
     )
+with ctrl_btn:
+    run_button = st.button(
+        "⬡  Ejecutar análisis",
+        type="primary",
+    )
+
+# ── 3. API KEY — secundario ──────────────────────────
+user_api_key = st.text_input(
+    "api_key_input",
+    type="password",
+    placeholder="Gemini API key",
+    label_visibility="collapsed"
+)
 
 file_df = pd.DataFrame()
 selected_column = None
@@ -2192,18 +2200,6 @@ confidence_level = 0
 # KPI BAR placeholder (se rellena al final con valores actuales)
 kpi_placeholder = st.empty()
 
-# ÁREA PRINCIPAL MÉDICA
-# ZONA INPUT
-abstract_text = st.text_area(
-    "",
-    placeholder="Introducir abstract científico para análisis biomédico...",
-    height=160,
-    key="abstract_input"
-)
-run_button = st.button(
-    "⬡  Ejecutar análisis",
-    type="primary",
-)
 progress_placeholder = st.empty()
 # ZONA RESULTADOS
 table_placeholder = st.empty()
