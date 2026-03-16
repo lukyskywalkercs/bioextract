@@ -564,7 +564,7 @@ with ctrl_btn:
         type="primary",
     )
 with ctrl_clear:
-    if st.session_state.last_results is not None:
+    if st.session_state.get("last_results") is not None:
         if st.button("✕ Limpiar", help="Borrar análisis y empezar de nuevo"):
             st.session_state.last_results = None
             st.session_state.last_df = None
