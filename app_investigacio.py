@@ -22,14 +22,14 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@300;400;500&display=swap');
 
 :root {
-    --bg:          #FAFAFA;
+    --bg:          #F8FAFC;
     --surface:     #FFFFFF;
-    --surface-2:   #F4F4F5;
-    --border:      #E4E4E7;
-    --border-2:    #D1D1D6;
-    --ink:         #09090B;
-    --ink-2:       #3F3F46;
-    --muted:       #71717A;
+    --surface-2:   #F1F5F9;
+    --border:      #E2E8F0;
+    --border-2:    #CBD5E1;
+    --ink:         #0F172A;
+    --ink-2:       #334155;
+    --muted:       #64748B;
     --accent:      #2563EB;
     --accent-dim:  #EFF6FF;
     --accent-hover:#1D4ED8;
@@ -135,15 +135,26 @@ header    { visibility: hidden; }
 
 /* ── Section label ──────────────────────────────── */
 .section-label {
-    font-size: 10px;
-    font-weight: 700;
+    font-size: 11px;
+    font-weight: 500;
     color: var(--muted);
     text-transform: uppercase;
-    letter-spacing: 1.5px;
+    letter-spacing: 0.8px;
     margin: 0 0 14px 0;
     padding-bottom: 8px;
     border-bottom: 1px solid var(--border);
     font-family: 'DM Sans', sans-serif;
+}
+
+/* ── Status badges ──────────────────────────────── */
+.status-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-variant-numeric: tabular-nums;
 }
 
 /* ── Controls card ──────────────────────────────── */
@@ -158,8 +169,8 @@ header    { visibility: hidden; }
 
 /* ── Text area ──────────────────────────────────── */
 .stTextArea textarea {
-    font-family: 'DM Mono', monospace !important;
-    font-size: 12px !important;
+    font-family: 'DM Sans', system-ui, sans-serif !important;
+    font-size: 13px !important;
     line-height: 1.65 !important;
     color: var(--ink-2) !important;
     background: var(--surface) !important;
@@ -182,7 +193,6 @@ header    { visibility: hidden; }
 .verdict-ok {
     background: var(--success-bg);
     border: 1px solid var(--success-bd);
-    border-left: 4px solid var(--success);
     border-radius: var(--radius-sm);
     padding: 14px 18px;
     font-size: 13.5px;
@@ -194,7 +204,6 @@ header    { visibility: hidden; }
 .verdict-warning {
     background: var(--warning-bg);
     border: 1px solid var(--warning-bd);
-    border-left: 4px solid #D97706;
     border-radius: var(--radius-sm);
     padding: 14px 18px;
     font-size: 13.5px;
@@ -206,7 +215,6 @@ header    { visibility: hidden; }
 .verdict-critical {
     background: var(--danger-bg);
     border: 1px solid var(--danger-bd);
-    border-left: 4px solid var(--danger);
     border-radius: var(--radius-sm);
     padding: 14px 18px;
     font-size: 13.5px;
@@ -256,6 +264,7 @@ header    { visibility: hidden; }
     color: var(--ink-2) !important;
     padding: 9px 12px !important;
     font-family: 'DM Sans', sans-serif !important;
+    font-variant-numeric: tabular-nums !important;
 }
 
 /* ── JSON dark block ────────────────────────────── */
@@ -419,6 +428,14 @@ header    { visibility: hidden; }
     box-shadow: var(--shadow-sm) !important;
     filter: brightness(0.98);
 }
+
+/* ── Reduced motion ─────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -475,7 +492,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.13</span>
+    ">v1.2.14</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -1762,19 +1779,19 @@ def normalize_results_hierarchical(
             p_value_num = None
         
         if p_value_num is not None and p_value_num < 0.05:
-            estado = "🔥"  # Alta prioridad estadística
+            estado = "p<0.05"
         elif resolucio == "agregado_clinico" and biomarcadors_implicits:
-            estado = "🧬"  # Entidad con biomarcadores implícitos
+            estado = "INFERIDO"
         elif len(fragmento.strip()) > 15 and estat_validacio == "OK":
-            estado = "✅"  # Verificado con fuente sólida
+            estado = "OK"
         elif tipus == "demografico":
-            estado = "👥"  # Grupo demográfico
+            estado = "DEMOG."
         elif tipus == "epidemiologico":
-            estado = "📊"  # Dato epidemiológico
+            estado = "EPID."
         elif tipus == "molecular":
-            estado = "🧬"  # Biomarcador molecular
+            estado = "MOL."
         else:
-            estado = estat_validacio  # Usar el estado de validación de la IA
+            estado = "–"
             
         # Construir métricas según nuevo esquema
         metriques_display = []
@@ -2530,9 +2547,9 @@ if run_button or results_to_show:
             st.markdown(f'''
             <div class="verdict-critical">
                 <div style="font-size:15px; font-weight:700; margin-bottom:4px;">
-                    🚨 Anomalía matemática crítica detectada
+                    Anomalía matemática crítica detectada
                 </div>
-                <div style="font-size:12px;">
+                <div style="font-size:13px;">
                     Se encontraron valores estadísticamente imposibles.
                     Revisar el abstract antes de usar estos datos en ningún análisis.
                 </div>
@@ -2545,9 +2562,9 @@ if run_button or results_to_show:
             st.markdown(f'''
             <div class="verdict-ok">
                 <div style="font-size:15px; font-weight:700; margin-bottom:4px;">
-                    ✅ Extracción completa
+                    Extracción completa
                 </div>
-                <div style="font-size:12px;">
+                <div style="font-size:13px;">
                     Métricas estructuradas disponibles.
                     Revisar señales prioritarias antes de usar los datos.
                 </div>
@@ -2560,9 +2577,9 @@ if run_button or results_to_show:
             st.markdown(f'''
             <div class="verdict-warning">
                 <div style="font-size:15px; font-weight:700; margin-bottom:4px;">
-                    ⚠️ Extracción parcial
+                    Extracción parcial
                 </div>
-                <div style="font-size:12px;">
+                <div style="font-size:13px;">
                     Datos utilizables con precaución.
                     Verificar métricas clave en el paper original.
                 </div>
@@ -2575,9 +2592,9 @@ if run_button or results_to_show:
             st.markdown(f'''
             <div class="verdict-warning">
                 <div style="font-size:15px; font-weight:700; margin-bottom:4px;">
-                    🔍 Cobertura baja
+                    Cobertura baja
                 </div>
-                <div style="font-size:12px;">
+                <div style="font-size:13px;">
                     El abstract no contiene suficientes datos estructurados
                     para este análisis.
                 </div>
@@ -2603,14 +2620,14 @@ if run_button or results_to_show:
                 impacto = señal.get("impacto_clinico", "")
                 poblacion = señal.get("poblacion_afectada", "")
                 if impacto == "alto":
-                    border, bg = "#991B1B", "#FEF2F2"
-                    badge, badge_color = "🔴 IMPACTO ALTO", "#991B1B"
+                    border, bg = "#991B1B", "var(--surface)"
+                    badge, badge_color = "ALTO", "#991B1B"
                 elif impacto == "medio":
-                    border, bg = "#92400E", "#FFFBEB"
-                    badge, badge_color = "🟡 IMPACTO MEDIO", "#92400E"
+                    border, bg = "#92400E", "var(--surface)"
+                    badge, badge_color = "MEDIO", "#92400E"
                 else:
-                    border, bg = "#1A56DB", "#EBF2FF"
-                    badge, badge_color = "🔵 IMPACTO BAJO", "#1A56DB"
+                    border, bg = "#1A56DB", "var(--surface)"
+                    badge, badge_color = "BAJO", "#1A56DB"
 
                 st.markdown(f'''
                 <div class="signal-card" style="background:{bg}; border-left:3px solid {border};
@@ -2619,10 +2636,10 @@ if run_button or results_to_show:
                                 align-items:center; margin-bottom:6px;">
                         <span style="font-size:11px; font-weight:700;
                                      color:#8896A5; letter-spacing:1px;">{tipo}</span>
-                        <span style="font-size:10px; font-weight:700;
-                                     color:{badge_color};">{badge}</span>
+                        <span style="font-size:10px; font-weight:600;
+                                     color:{badge_color}; letter-spacing:0.5px;">{badge}</span>
                     </div>
-                    <div style="font-size:13px; color:#0D1B2A; line-height:1.5;">{desc}</div>
+                    <div style="font-size:14px; color:#0D1B2A; line-height:1.5;">{desc}</div>
                     <div style="font-size:11px; color:#8896A5; margin-top:6px;">
                         Población afectada: {poblacion}
                     </div>
@@ -2636,7 +2653,6 @@ if run_button or results_to_show:
         </div>
         <div style="font-size:11px; color:#8896A5; margin-bottom:10px;">
             Entidades biomédicas estructuradas extraídas del abstract.
-            🚨 indica anomalía matemática crítica. ✅ indica extracción verificada.
         </div>
         ''', unsafe_allow_html=True)
 
@@ -2668,16 +2684,16 @@ if run_button or results_to_show:
             tabla_clinica = final_df[cols_ok]
 
             def highlight_status(val):
-                if val == "🔥":
-                    return "background-color: #FFF3E0; color: #F57C00;"
-                elif val == "🧬":
-                    return "background-color: #E8EAF6; color: #3F51B5;"
-                elif val == "✅":
-                    return "background-color: #E8F5E8; color: #2E7D32;"
-                elif val == "🔍":
-                    return "background-color: #E1F5FE; color: #0277BD;"
-                elif val == "⚠️":
-                    return "background-color: #FFEBEE; color: #D32F2F;"
+                if val == "p<0.05":
+                    return "background-color: #FFF3E0; color: #92400E; font-weight: 500;"
+                elif val == "INFERIDO":
+                    return "background-color: #E8EAF6; color: #3730A3; font-weight: 500;"
+                elif val == "OK":
+                    return "background-color: #F0FDF4; color: #15803D; font-weight: 500;"
+                elif val in ("DEMOG.", "EPID.", "MOL."):
+                    return "background-color: #F8FAFC; color: #334155; font-weight: 500;"
+                elif val == "–":
+                    return "color: #94A3B8;"
                 return ""
 
             def highlight_omission_risk(val):
@@ -2759,12 +2775,12 @@ if run_button or results_to_show:
                                 padding:10px 14px; margin:4px 0; background:{bg_color};">
                         <div style="display:flex; justify-content:space-between;
                                     align-items:baseline; margin-bottom:4px;">
-                            <span style="font-size:12px; font-weight:600;
+                            <span style="font-size:13px; font-weight:600;
                                          color:#0D1B2A;">{estado} {entidad}</span>
                             <span style="font-size:11px; color:#1A56DB;
                                          font-family:monospace;">{metricas_str}</span>
                         </div>
-                        <div style="font-size:12px; color:#4A5568;
+                        <div style="font-size:13px; color:#4A5568;
                                     font-style:italic; line-height:1.5;">
                             "{fragmento}"
                         </div>
@@ -2958,19 +2974,20 @@ if run_button or results_to_show:
                 sensor_df = pd.DataFrame(sensor_alerts, columns=["Fila", "Alerta"])
                 st.dataframe(sensor_df, use_container_width=True, hide_index=True)
 
-# KPI BAR (valores 0 antes de ejecutar, reales después)
+# KPI BAR (solo visible cuando hay datos procesados)
 with kpi_placeholder.container():
-    st.markdown('<div class="kpi-band">', unsafe_allow_html=True)
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.metric("Procesados", processed_count)
-    with col2:
-        st.metric("Entidades", entity_count)
-    with col3:
-        st.metric("Alertas", total_alerts)
-    with col4:
-        st.metric("Confianza", f"{confidence_level}%")
-    st.markdown('</div>', unsafe_allow_html=True)
+    if processed_count > 0:
+        st.markdown('<div class="kpi-band">', unsafe_allow_html=True)
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Procesados", processed_count)
+        with col2:
+            st.metric("Entidades", entity_count)
+        with col3:
+            st.metric("Alertas", total_alerts)
+        with col4:
+            st.metric("Confianza", f"{confidence_level}%")
+        st.markdown('</div>', unsafe_allow_html=True)
     
     # Indicador de demo gratuita
     _, es_demo_check = resolve_api_key(user_api_key)
