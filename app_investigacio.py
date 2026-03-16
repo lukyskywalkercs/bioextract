@@ -56,8 +56,9 @@ st.markdown("""
 }
 
 div.block-container {
-    padding: 24px 48px !important;
-    max-width: 100% !important;
+    padding: 24px 32px !important;
+    max-width: 720px !important;
+    margin: 0 auto !important;
 }
 
 section[data-testid="stSidebar"] { display: none !important; }
@@ -155,6 +156,23 @@ header    { visibility: hidden; }
     padding: 2px 6px;
     border-radius: 4px;
     font-variant-numeric: tabular-nums;
+}
+
+/* ── Run button — centered, auto-width ──────────── */
+#run-btn-anchor + div[data-testid="stButton"] {
+    display: flex !important;
+    justify-content: center !important;
+    margin: 16px 0 !important;
+}
+#run-btn-anchor + div[data-testid="stButton"] button {
+    width: auto !important;
+    min-width: 160px !important;
+    padding: 10px 32px !important;
+}
+
+/* ── API key — max-width 400px, left-aligned ─────── */
+div[data-testid="stTextInput"] input[type="password"] {
+    max-width: 400px !important;
 }
 
 /* ── Controls card ──────────────────────────────── */
@@ -492,7 +510,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.14</span>
+    ">v1.2.15</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -2171,49 +2189,19 @@ kpi_placeholder = st.empty()
 
 # ÁREA PRINCIPAL MÉDICA
 # ZONA INPUT
-st.markdown('''
-<div style="
-    background:#FFFFFF;
-    border:1px solid #E4E4E7;
-    border-radius:10px;
-    padding:20px 24px;
-    margin-bottom:16px;
-    box-shadow:0 1px 3px rgba(0,0,0,0.06);
-    max-width:720px;
-    margin-left:auto;
-    margin-right:auto;
-">
-    <div class="section-label">TEXTO DE ENTRADA</div>
-''', unsafe_allow_html=True)
 abstract_text = st.text_area(
     "",
     placeholder="Introducir abstract científico para análisis biomédico...",
     height=160,
     key="abstract_input"
 )
-st.markdown('</div>', unsafe_allow_html=True)
-btn_col1, btn_col2, btn_col3 = st.columns([1, 2, 1])
-with btn_col2:
-    run_button = st.button(
-        "⬡  Ejecutar análisis",
-        type="primary",
-        use_container_width=True
-    )
+st.markdown('<div id="run-btn-anchor"></div>', unsafe_allow_html=True)
+run_button = st.button(
+    "⬡  Ejecutar análisis",
+    type="primary",
+)
 progress_placeholder = st.empty()
 # ZONA RESULTADOS
-st.markdown('''
-<div style="
-    background:#FFFFFF;
-    border:1px solid #E4E4E7;
-    border-radius:10px;
-    padding:20px 24px;
-    box-shadow:0 1px 3px rgba(0,0,0,0.06);
-    max-width:720px;
-    margin-left:auto;
-    margin-right:auto;
-">
-    <div class="section-label">RESULTADOS</div>
-''', unsafe_allow_html=True)
 table_placeholder = st.empty()
 summary_placeholder = st.empty()
 if not run_button:
@@ -2256,7 +2244,6 @@ if not run_button:
         </div>
     </div>
     ''', unsafe_allow_html=True)
-st.markdown('</div>', unsafe_allow_html=True)
 
 # Area inferior para controles adicionales
 download_placeholder = st.empty()
