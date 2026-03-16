@@ -336,6 +336,16 @@ header    { visibility: hidden; }
     margin-top: 8px !important;
     display: block !important;
 }
+
+/* ── KPI band ───────────────────────────────────── */
+.kpi-band {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 4px 0;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-sm);
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -392,7 +402,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.11</span>
+    ">v1.2.12</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -408,101 +418,12 @@ st.markdown('''
 </div>
 ''', unsafe_allow_html=True)
 
-st.markdown('''
-<div style="
-    background:#F4F4F5;
-    border:1px solid #E4E4E7;
-    border-radius:8px;
-    padding:12px 20px;
-    margin-bottom:16px;
-    display:flex;
-    gap:32px;
-    align-items:center;
-    flex-wrap:wrap;
-    max-width:720px;
-    margin-left:auto;
-    margin-right:auto;
-">
-    <div style="display:flex; align-items:center; gap:8px;">
-        <span style="font-size:16px;">🧬</span>
-        <div>
-            <div style="font-size:11px; font-weight:700;
-                        color:#09090B; letter-spacing:0.3px;">
-                EXTRACCIÓN DE ENTIDADES
-            </div>
-            <div style="font-size:11px; color:#71717A;">
-                Biomarcadores, fármacos, poblaciones
-            </div>
-        </div>
-    </div>
-    <div style="display:flex; align-items:center; gap:8px;">
-        <span style="font-size:16px;">📊</span>
-        <div>
-            <div style="font-size:11px; font-weight:700;
-                        color:#09090B; letter-spacing:0.3px;">
-                MÉTRICAS ESTADÍSTICAS
-            </div>
-            <div style="font-size:11px; color:#71717A;">
-                HR, OR, p-values, IC 95%
-            </div>
-        </div>
-    </div>
-    <div style="display:flex; align-items:center; gap:8px;">
-        <span style="font-size:16px;">🚨</span>
-        <div>
-            <div style="font-size:11px; font-weight:700;
-                        color:#09090B; letter-spacing:0.3px;">
-                DETECCIÓN DE ANOMALÍAS
-            </div>
-            <div style="font-size:11px; color:#71717A;">
-                Valores matemáticamente imposibles
-            </div>
-        </div>
-    </div>
-    <div style="display:flex; align-items:center; gap:8px;">
-        <span style="font-size:16px;">💾</span>
-        <div>
-            <div style="font-size:11px; font-weight:700;
-                        color:#09090B; letter-spacing:0.3px;">
-                EXPORT CSV + JSON
-            </div>
-            <div style="font-size:11px; color:#71717A;">
-                Datos estructurados descargables
-            </div>
-        </div>
-    </div>
-</div>
-''', unsafe_allow_html=True)
 
-st.markdown('''
-<div style="
-    max-width:720px;
-    margin:0 auto 20px auto;
-    background:#EFF6FF;
-    border:1px solid #BFDBFE;
-    border-radius:8px;
-    padding:10px 16px;
-    display:flex;
-    align-items:center;
-    gap:10px;
-    font-size:12px;
-    color:#1E40AF;
-    font-family:'DM Sans', sans-serif;
-">
-    <span style="font-size:14px;">📄</span>
-    <span>
-        Diseñada para abstracts de publicaciones
-        científicas (PubMed, NEJM, Lancet, etc.).
-        El análisis no reemplaza la lectura del
-        paper completo ni evalúa calidad metodológica.
-    </span>
-</div>
-''', unsafe_allow_html=True)
 
 
 # CONTROLES HORIZONTALES
 run_button = False
-ctrl1, ctrl2, ctrl3 = st.columns([3, 1.5, 1.5])
+ctrl1, ctrl2 = st.columns([3, 1.5])
 
 with ctrl1:
     user_api_key = st.text_input(
@@ -519,9 +440,6 @@ with ctrl2:
         horizontal=True,
         label_visibility="collapsed"
     )
-
-with ctrl3:
-    st.empty()
 
 file_df = pd.DataFrame()
 selected_column = None
@@ -2175,7 +2093,7 @@ st.markdown('''
     margin-left:auto;
     margin-right:auto;
 ">
-    <div class="section-label">ABSTRACT INPUT</div>
+    <div class="section-label">TEXTO DE ENTRADA</div>
 ''', unsafe_allow_html=True)
 abstract_text = st.text_area(
     "",
@@ -2204,7 +2122,7 @@ st.markdown('''
     margin-left:auto;
     margin-right:auto;
 ">
-    <div class="section-label">EXTRACTION RESULTS</div>
+    <div class="section-label">RESULTADOS</div>
 ''', unsafe_allow_html=True)
 table_placeholder = st.empty()
 summary_placeholder = st.empty()
@@ -2784,7 +2702,7 @@ if run_button or results_to_show:
         if mode == "Masivo" and all_payloads:
             st.markdown(
                 '<div class="section-label" style="margin-top:36px; padding-top:28px; border-top:1px solid #E4E4E7;">RESUMEN EJECUTIVO</div>'
-                '<div style="font-size:11px; color:#71717A; margin-bottom:10px;">Una fila por abstract. Ordena por Anom\u00edas cr\u00edticas para priorizar revisi\u00f3n.</div>',
+                '<div style="font-size:11px; color:#71717A; margin-bottom:10px;">Una fila por abstract. Ordena por Anomal\u00edas cr\u00edticas para priorizar revisi\u00f3n.</div>',
                 unsafe_allow_html=True
             )
             resumen_rows = []
@@ -2816,7 +2734,7 @@ if run_button or results_to_show:
                     "Estado": _estado,
                     "Entidades": len(_entidades),
                     "Confianza": str(_confianza) + "%",
-                    "Anom\u00edas cr\u00edticas": _criticos,
+                    "Anomal\u00edas cr\u00edticas": _criticos,
                     "Se\u00f1ales alto impacto": _senales_altas,
                 })
             resumen_df = pd.DataFrame(resumen_rows)
