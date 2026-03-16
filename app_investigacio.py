@@ -217,39 +217,21 @@ div[data-testid="stProgressBar"] > div {
 }
 
 /* ── Verdict cards ──────────────────────────────── */
-.verdict-ok {
-    background: var(--success-bg);
-    border: 1px solid var(--success-bd);
-    border-radius: var(--radius-sm);
-    padding: 14px 18px;
-    font-size: 13.5px;
-    font-weight: 500;
-    color: var(--success);
-    line-height: 1.5;
-    box-shadow: var(--shadow-sm);
-}
-.verdict-warning {
-    background: var(--warning-bg);
-    border: 1px solid var(--warning-bd);
-    border-radius: var(--radius-sm);
-    padding: 14px 18px;
-    font-size: 13.5px;
-    font-weight: 500;
-    color: var(--warning);
-    line-height: 1.5;
-    box-shadow: var(--shadow-sm);
-}
+.verdict-ok,
+.verdict-warning,
 .verdict-critical {
-    background: var(--danger-bg);
-    border: 1px solid var(--danger-bd);
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     padding: 14px 18px;
-    font-size: 13.5px;
-    font-weight: 500;
-    color: var(--danger);
-    line-height: 1.5;
-    box-shadow: var(--shadow-sm);
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--ink-2);
+    line-height: 1.6;
 }
+.verdict-ok    .verdict-title { color: var(--success); }
+.verdict-warning .verdict-title { color: var(--warning); }
+.verdict-critical .verdict-title { color: var(--danger); }
 
 /* ── Signal pill badges ─────────────────────────── */
 .alert-success { background: var(--success-bg); color: var(--success); padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; border: 1px solid var(--success-bd); }
@@ -292,6 +274,9 @@ div[data-testid="stProgressBar"] > div {
     padding: 9px 12px !important;
     font-family: 'DM Sans', sans-serif !important;
     font-variant-numeric: tabular-nums !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    max-width: 220px !important;
 }
 
 /* ── JSON dark block ────────────────────────────── */
@@ -519,7 +504,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.18</span>
+    ">v1.2.19</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -1901,7 +1886,7 @@ def normalize_results_hierarchical(
                     else:
                         metriques_display.append(f"{key}={value}")
         
-        metriques_str = " | ".join(metriques_display) if metriques_display else "NO DISPONIBLE"
+        metriques_str = " | ".join(metriques_display) if metriques_display else "—"
         poblacion_str = ", ".join(poblacio) if isinstance(poblacio, list) else ""
         
         # Biomarcadores implícitos como string
@@ -2542,7 +2527,7 @@ if run_button or results_to_show:
         if hay_criticos:
             st.markdown(f'''
             <div class="verdict-critical">
-                <div style="font-size:15px; font-weight:700; margin-bottom:4px;">
+                <div class="verdict-title" style="font-size:14px; font-weight:600; margin-bottom:6px;">
                     Anomalía matemática crítica detectada
                 </div>
                 <div style="font-size:13px;">
@@ -2557,7 +2542,7 @@ if run_button or results_to_show:
         elif confidence_level >= 85:
             st.markdown(f'''
             <div class="verdict-ok">
-                <div style="font-size:15px; font-weight:700; margin-bottom:4px;">
+                <div class="verdict-title" style="font-size:14px; font-weight:600; margin-bottom:6px;">
                     Extracción completa
                 </div>
                 <div style="font-size:13px;">
@@ -2572,7 +2557,7 @@ if run_button or results_to_show:
         elif confidence_level >= 60:
             st.markdown(f'''
             <div class="verdict-warning">
-                <div style="font-size:15px; font-weight:700; margin-bottom:4px;">
+                <div class="verdict-title" style="font-size:14px; font-weight:600; margin-bottom:6px;">
                     Extracción parcial
                 </div>
                 <div style="font-size:13px;">
@@ -2587,7 +2572,7 @@ if run_button or results_to_show:
         else:
             st.markdown(f'''
             <div class="verdict-warning">
-                <div style="font-size:15px; font-weight:700; margin-bottom:4px;">
+                <div class="verdict-title" style="font-size:14px; font-weight:600; margin-bottom:6px;">
                     Cobertura baja
                 </div>
                 <div style="font-size:13px;">
@@ -2616,29 +2601,32 @@ if run_button or results_to_show:
                 impacto = señal.get("impacto_clinico", "")
                 poblacion = señal.get("poblacion_afectada", "")
                 if impacto == "alto":
-                    border, bg = "#991B1B", "var(--surface)"
                     badge, badge_color = "ALTO", "#991B1B"
                 elif impacto == "medio":
-                    border, bg = "#92400E", "var(--surface)"
                     badge, badge_color = "MEDIO", "#92400E"
                 else:
-                    border, bg = "#1A56DB", "var(--surface)"
-                    badge, badge_color = "BAJO", "#1A56DB"
+                    badge, badge_color = "BAJO", "#475569"
+
+                poblacion_html = (
+                    f'<div style="font-size:11px; color:#8896A5; margin-top:6px;">'
+                    f'Población afectada: {poblacion}</div>'
+                    if poblacion and poblacion not in ([], "", "[]", "None", None)
+                    else ""
+                )
 
                 st.markdown(f'''
-                <div class="signal-card" style="background:{bg}; border-left:3px solid {border};
-                            border-radius:0 6px 6px 0; padding:12px 16px; margin:6px 0;">
+                <div class="signal-card" style="background:var(--surface);
+                            border:1px solid var(--border);
+                            border-radius:var(--radius-sm); padding:12px 16px; margin:6px 0;">
                     <div style="display:flex; justify-content:space-between;
                                 align-items:center; margin-bottom:6px;">
-                        <span style="font-size:11px; font-weight:700;
-                                     color:#8896A5; letter-spacing:1px;">{tipo}</span>
+                        <span style="font-size:11px; font-weight:600;
+                                     color:var(--muted); letter-spacing:0.6px;">{tipo}</span>
                         <span style="font-size:10px; font-weight:600;
                                      color:{badge_color}; letter-spacing:0.5px;">{badge}</span>
                     </div>
-                    <div style="font-size:14px; color:#0D1B2A; line-height:1.5;">{desc}</div>
-                    <div style="font-size:11px; color:#8896A5; margin-top:6px;">
-                        Población afectada: {poblacion}
-                    </div>
+                    <div style="font-size:14px; color:var(--ink); line-height:1.6;">{desc}</div>
+                    {poblacion_html}
                 </div>
                 ''', unsafe_allow_html=True)
 
@@ -2685,11 +2673,11 @@ if run_button or results_to_show:
                 elif val == "INFERIDO":
                     return "background-color: #E8EAF6; color: #3730A3; font-weight: 500;"
                 elif val == "OK":
-                    return "background-color: #F0FDF4; color: #15803D; font-weight: 500;"
+                    return "color: #94A3B8; font-weight: 400;"
                 elif val in ("DEMOG.", "EPID.", "MOL."):
-                    return "background-color: #F8FAFC; color: #334155; font-weight: 500;"
+                    return "color: #94A3B8; font-weight: 400;"
                 elif val == "–":
-                    return "color: #94A3B8;"
+                    return "color: #CBD5E1;"
                 return ""
 
             def highlight_omission_risk(val):
@@ -2698,8 +2686,8 @@ if run_button or results_to_show:
                 return ""
 
             def clean_metricas_display(val):
-                if not val or val == "NO DISPONIBLE":
-                    return val
+                if not val or val in ("NO DISPONIBLE", "—"):
+                    return "—"
                 prefijos = [
                     "incidencia_anual_pct=",
                     "mortalidad_pct=",
