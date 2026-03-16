@@ -159,12 +159,12 @@ header    { visibility: hidden; }
 }
 
 /* ── Run button — centered, auto-width ──────────── */
-#run-btn-anchor + div[data-testid="stButton"] {
+div[data-testid="stButton"] {
     display: flex !important;
     justify-content: center !important;
-    margin: 16px 0 !important;
+    margin: 8px 0 !important;
 }
-#run-btn-anchor + div[data-testid="stButton"] button {
+div[data-testid="stButton"] > button[kind="primary"] {
     width: auto !important;
     min-width: 160px !important;
     padding: 10px 32px !important;
@@ -173,6 +173,11 @@ header    { visibility: hidden; }
 /* ── API key — max-width 400px, left-aligned ─────── */
 div[data-testid="stTextInput"] input[type="password"] {
     max-width: 400px !important;
+}
+
+/* ── Reduce gap between controls row and textarea ── */
+div[data-testid="stColumns"] {
+    margin-bottom: 4px !important;
 }
 
 /* ── Controls card ──────────────────────────────── */
@@ -510,7 +515,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.15</span>
+    ">v1.2.16</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -2195,7 +2200,6 @@ abstract_text = st.text_area(
     height=160,
     key="abstract_input"
 )
-st.markdown('<div id="run-btn-anchor"></div>', unsafe_allow_html=True)
 run_button = st.button(
     "⬡  Ejecutar análisis",
     type="primary",
