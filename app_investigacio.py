@@ -175,6 +175,15 @@ div[data-testid="stColumns"] {
     margin-bottom: 4px !important;
 }
 
+/* ── Progress bar — breathing room ──────────────── */
+div[data-testid="stProgressBar"] {
+    margin-top: 28px !important;
+    margin-bottom: 8px !important;
+}
+div[data-testid="stProgressBar"] > div {
+    border-radius: 4px !important;
+}
+
 /* ── Controls card ──────────────────────────────── */
 .controls-card {
     background: var(--surface);
@@ -510,7 +519,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.17</span>
+    ">v1.2.18</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -558,7 +567,7 @@ with ctrl_btn:
 user_api_key = st.text_input(
     "api_key_input",
     type="password",
-    placeholder="Gemini API key",
+    placeholder="Gemini API key  —  5 análisis gratuitos si la dejas en blanco",
     label_visibility="collapsed"
 )
 
