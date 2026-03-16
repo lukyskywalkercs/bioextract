@@ -504,7 +504,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.19</span>
+    ">v1.2.20</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -665,6 +665,37 @@ irrelevante. Ejemplos de lo que debes capturar:
 Cualquier valor que describa cómo se procesó la muestra,
 no qué le ocurre al paciente o al tejido biológico.
 
+REGLA 9 — TIPO DE ESTUDIO:
+Detecta y clasifica el tipo de estudio del abstract. Usa uno de estos
+valores exactos en los campos "tipo_estudio" de metadata y resumen_ejecutivo:
+- "in_vitro"           (líneas celulares, cultivos, ensayos en placa)
+- "in_vivo"            (modelo animal: ratón, rata, primate, zebrafish)
+- "clinico_fase1"      (fase I, first-in-human, dose-escalation)
+- "clinico_fase2"      (fase II, proof-of-concept, piloto clínico)
+- "clinico_fase3"      (fase III, confirmatory trial)
+- "rct"                (randomized controlled trial, RCT, aleatorizado con control)
+- "meta_analisis"      (meta-analysis, systematic review, revisión sistemática)
+- "revision_narrativa" (narrative review, revisión narrativa, expert review)
+- "epidemiologico"     (cohorte, caso-control, registro, prevalencia, incidencia)
+- "desconocido"        (si no puede determinarse con certeza)
+
+REGLA 10 — GAP DE TRASLACIÓN CLÍNICA:
+Basándote en el tipo_estudio detectado, asigna gaps_criticos["traslacion_clinica"]:
+- Si tipo_estudio = "in_vitro": "Estudio preclínico — resultados obtenidos en líneas celulares. No trasladables directamente a pacientes. Requiere validación clínica."
+- Si tipo_estudio = "in_vivo": "Estudio preclínico — resultados obtenidos en modelo animal. No trasladables directamente a pacientes. Requiere validación clínica."
+- En cualquier otro caso (clinico, rct, meta_analisis, revision_narrativa, epidemiologico, desconocido): "NO APLICA"
+
+REGLA 11 — NIVEL DE EVIDENCIA POR ENTIDAD:
+El campo "nivel_evidencia" de cada entidad en entidades_de_riesgo debe reflejar
+el tipo_estudio detectado para el abstract completo:
+- "in_vitro"                                  → "preclínico_in_vitro"
+- "in_vivo"                                   → "preclínico_in_vivo"
+- "rct" / "clinico_fase3" / "meta_analisis"   → "clinico_alto"
+- "clinico_fase1" / "clinico_fase2"           → "clinico_exploratorio"
+- "revision_narrativa"                        → "narrativo"
+- "epidemiologico"                            → "epidemiologico"
+- "desconocido"                               → "desconocido"
+
 FORMATO JSON (respeta las claves exactas):
 {{
   "entidades_de_riesgo": [
@@ -693,6 +724,7 @@ FORMATO JSON (respeta las claves exactas):
       "poblacion_afectada": ["grupo"],
       "relacion_causal": "causal|correlacional|asociativo|parcial",
       "cualificador_original": "texto con partly/only/significantly si existe",
+      "nivel_evidencia": "preclínico_in_vitro|preclínico_in_vivo|clinico_alto|clinico_exploratorio|narrativo|epidemiologico|desconocido",
       "riesgo_omision": "CRÍTICO|Aceptable",
       "fragmento_fuente": "texto exacto del abstract"
     }}
@@ -708,11 +740,15 @@ FORMATO JSON (respeta las claves exactas):
   "gaps_criticos": {{
     "microbiota": "NO DISPONIBLE",
     "biomarcadores_moleculares": "descripcion o NO DISPONIBLE",
-    "metricas_estadisticas": "descripcion o NO DISPONIBLE"
+    "metricas_estadisticas": "descripcion o NO DISPONIBLE",
+    "traslacion_clinica": "segun REGLA 10"
   }},
   "metadata": {{
     "nivel_evidencia": "epidemiologico|clinico|in_vitro|meta-analisis",
-    "tipo_estudio": "tipo detectado"
+    "tipo_estudio": "in_vitro|in_vivo|clinico_fase1|clinico_fase2|clinico_fase3|rct|meta_analisis|revision_narrativa|epidemiologico|desconocido"
+  }},
+  "resumen_ejecutivo": {{
+    "tipo_estudio": "mismo valor que metadata.tipo_estudio"
   }}
 }}
 
