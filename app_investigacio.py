@@ -165,6 +165,22 @@ div[data-testid="stButton"] > button[kind="primary"] {
     width: 100% !important;
 }
 
+/* ── Clear button — muted secondary ──────────────── */
+div[data-testid="stButton"] > button[kind="secondary"] {
+    background: transparent !important;
+    border: 1px solid var(--border-2) !important;
+    color: var(--muted) !important;
+    font-size: 12px !important;
+    padding: 8px 12px !important;
+    width: 100% !important;
+    transition: border-color 0.15s, color 0.15s !important;
+}
+div[data-testid="stButton"] > button[kind="secondary"]:hover {
+    border-color: var(--ink-2) !important;
+    color: var(--ink-2) !important;
+    background: transparent !important;
+}
+
 /* ── API key — max-width 400px, left-aligned ─────── */
 div[data-testid="stTextInput"] input[type="password"] {
     max-width: 400px !important;
@@ -504,7 +520,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.20</span>
+    ">v1.2.21</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -534,7 +550,7 @@ abstract_text = st.text_area(
 )
 
 # ── 2. FILA: Modo + Ejecutar ─────────────────────────
-ctrl_mode, ctrl_btn = st.columns([2, 3])
+ctrl_mode, ctrl_btn, ctrl_clear = st.columns([2, 3, 1])
 with ctrl_mode:
     mode = st.radio(
         "modo",
@@ -547,6 +563,14 @@ with ctrl_btn:
         "⬡  Ejecutar análisis",
         type="primary",
     )
+with ctrl_clear:
+    if st.session_state.last_results is not None:
+        if st.button("✕ Limpiar", help="Borrar análisis y empezar de nuevo"):
+            st.session_state.last_results = None
+            st.session_state.last_df = None
+            st.session_state.last_json = None
+            st.session_state["abstract_input"] = ""
+            st.rerun()
 
 # ── 3. API KEY — secundario ──────────────────────────
 user_api_key = st.text_input(
