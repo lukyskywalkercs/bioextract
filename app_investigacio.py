@@ -2260,43 +2260,75 @@ table_placeholder = st.empty()
 summary_placeholder = st.empty()
 if not run_button:
     table_placeholder.markdown('''
-    <div style="
-        display:flex;
-        flex-direction:column;
-        align-items:center;
-        justify-content:center;
-        padding:48px 24px;
-        text-align:center;
-        gap:16px;
-    ">
-        <div class="pulse-hex">⬡</div>
-        <div style="font-size:14px; font-weight:600;
-                    color:#3F3F46;">
-            Introduce un abstract y pulsa Ejecutar
-        </div>
-        <div style="font-size:12px; color:#A1A1AA;
-                    max-width:320px; line-height:1.6;">
-            BioExtract extrae entidades biomédicas,
-            detecta anomalías matemáticas y estructura
-            los datos para triaje de literatura científica.
-        </div>
-        <div style="display:flex; gap:8px;
-                    flex-wrap:wrap; justify-content:center;
-                    margin-top:8px;">
-            <span style="background:#F4F4F5; border-radius:20px;
-                         padding:4px 14px; font-size:11px;
-                         color:#71717A;">Veredicto inmediato</span>
-            <span style="background:#F4F4F5; border-radius:20px;
-                         padding:4px 14px; font-size:11px;
-                         color:#71717A;">Señales prioritarias</span>
-            <span style="background:#F4F4F5; border-radius:20px;
-                         padding:4px 14px; font-size:11px;
-                         color:#71717A;">HR · OR · p-values</span>
-            <span style="background:#F4F4F5; border-radius:20px;
-                         padding:4px 14px; font-size:11px;
-                         color:#71717A;">Export CSV + JSON</span>
-        </div>
+<div style="padding:28px 0 48px 0;">
+
+  <p style="font-size:15px; font-weight:500; color:var(--ink);
+            line-height:1.55; margin:0 0 14px 0;">
+    Pega el abstract de un paper y obtén sus entidades biomédicas
+    estructuradas en segundos.
+  </p>
+
+  <div style="display:flex; flex-direction:column; gap:7px; margin-bottom:14px;">
+    <div style="font-size:13px; color:var(--ink-2); line-height:1.6;">
+      Detecta anomalías matemáticas imposibles — HR negativos, IC invertidos,
+      supervivencias &gt;100%
     </div>
+    <div style="font-size:13px; color:var(--ink-2); line-height:1.6;">
+      Distingue entre evidencia preclínica y clínica — in vitro, RCT,
+      revisión narrativa
+    </div>
+  </div>
+
+  <p style="font-size:12px; color:var(--muted); line-height:1.5;
+            font-style:italic; margin:0 0 28px 0;">
+    No evalúa calidad metodológica ni reemplaza la lectura del paper original.
+  </p>
+
+  <div style="border-top:1px solid var(--border); padding-top:20px;">
+
+    <div style="font-size:10px; font-weight:600; color:var(--muted);
+                letter-spacing:0.8px; text-transform:uppercase; margin-bottom:14px;">
+      Ejemplo de salida
+    </div>
+
+    <div style="font-size:10px; font-weight:600; color:var(--muted);
+                letter-spacing:0.5px; text-transform:uppercase; margin-bottom:6px;">
+      Input
+    </div>
+    <div style="font-size:12px; color:var(--ink-2); background:var(--surface-2);
+                border:1px solid var(--border); border-radius:4px;
+                padding:10px 14px; line-height:1.7; margin-bottom:16px;">
+      A phase III randomized controlled trial evaluated capivasertib plus
+      fulvestrant versus placebo in 523 patients with HR-positive HER2-negative
+      metastatic breast cancer. Progression-free survival was significantly
+      improved (HR=0.60, 95%&nbsp;CI&nbsp;0.51–0.71, p&lt;0.001).
+    </div>
+
+    <div style="font-size:10px; font-weight:600; color:var(--muted);
+                letter-spacing:0.5px; text-transform:uppercase; margin-bottom:10px;">
+      Output
+    </div>
+    <div style="display:flex; flex-direction:column; gap:9px;">
+      <div style="font-size:13px; color:var(--ink-2); line-height:1.6;">
+        ✅ <span style="color:var(--ink); font-weight:500;">Veredicto:</span>
+        Extracción completa — 100%
+      </div>
+      <div style="font-size:13px; color:var(--ink-2); line-height:1.6;">
+        <span style="color:var(--ink); font-weight:500;">Entidades:</span>
+        capivasertib · fulvestrant · HR-positive HER2-negative metastatic breast cancer
+      </div>
+      <div style="font-size:13px; color:var(--ink-2); line-height:1.6;">
+        <span style="color:var(--ink); font-weight:500;">Métricas:</span>
+        HR=0.60 · CI [0.51–0.71] · p&lt;0.001
+      </div>
+      <div style="font-size:13px; color:var(--ink-2); line-height:1.6;">
+        <span style="color:var(--ink); font-weight:500;">Tipo de estudio:</span>
+        RCT clínico fase III
+      </div>
+    </div>
+
+  </div>
+</div>
     ''', unsafe_allow_html=True)
 
 # Area inferior para controles adicionales
