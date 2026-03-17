@@ -1712,12 +1712,26 @@ tiene_errores: false, veredicto: OPTIMA, errores: []
 """
 
     try:
-        model = genai.GenerativeModel("gemini-2.5-flash")
-        response = model.generate_content(
-            prompt,
-            generation_config={"temperature": 0.0, "response_mime_type": "application/json"}
-        )
-        return json.loads(response.text)
+        validation_response = None
+        for vmodel in ["gemini-2.5-flash", "gemini-1.5-flash"]:
+            for vattempt in range(2):
+                try:
+                    model = genai.GenerativeModel(vmodel)
+                    validation_response = model.generate_content(
+                        prompt,
+                        generation_config={"temperature": 0.0, "response_mime_type": "application/json"}
+                    )
+                    break
+                except Exception as vexc:
+                    if "500" in str(vexc) and vattempt == 0:
+                        time.sleep(2)
+                        continue
+                    break
+            if validation_response is not None:
+                break
+        if validation_response is None:
+            raise RuntimeError("Validacion IA sin respuesta")
+        return json.loads(validation_response.text)
     except Exception:
         return {
             "tiene_errores": False,
@@ -1743,19 +1757,29 @@ def call_gemini_extract(abstract: str, api_key: str, model_preference: str = "Au
     else:  # Automàtic
         model_candidates = ["gemini-2.5-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash"]
     
+    # Garantizar gemini-1.5-flash como ultimo recurso
+    if "gemini-1.5-flash" not in model_candidates:
+        model_candidates = list(model_candidates) + ["gemini-1.5-flash"]
+
     response = None
     last_error = None
     for model_name in model_candidates:
-        try:
-            model = genai.GenerativeModel(model_name)
-            response = model.generate_content(
-                build_prompt(abstract),
-                generation_config={"temperature": 0.0, "response_mime_type": "application/json"},
-            )
+        for attempt in range(2):
+            try:
+                model = genai.GenerativeModel(model_name)
+                response = model.generate_content(
+                    build_prompt(abstract),
+                    generation_config={"temperature": 0.0, "response_mime_type": "application/json"},
+                )
+                break
+            except Exception as exc:
+                last_error = exc
+                if "500" in str(exc) and attempt == 0:
+                    time.sleep(2)
+                    continue
+                break
+        if response is not None:
             break
-        except Exception as exc:
-            last_error = exc
-            continue
     if response is None:
         raise ValueError(f"No ha estat possible invocar un model Gemini disponible: {last_error}")
 
