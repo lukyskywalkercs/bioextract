@@ -397,24 +397,7 @@ div[data-testid="stProgressBar"] > div {
 .stProgress {
     margin-bottom: 4px !important;
 }
-/* Modo Masivo — progress bar sin scroll ni desbordamiento */
-.stMarkdownContainer {
-    overflow-x: hidden !important;
-    white-space: normal !important;
-}
-.stMarkdownContainer p {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-    margin: 0 !important;
-}
-.stProgress > div {
-    width: 100% !important;
-    overflow: hidden !important;
-    margin: 8px 0 !important;
-    padding: 0 !important;
-}
+
 /* Separación entre barra y texto */
 [data-testid="stText"] {
     font-size: 12px !important;
