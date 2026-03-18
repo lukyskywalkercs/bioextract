@@ -1645,11 +1645,18 @@ No inventes errores. Solo reporta lo que claramente es incorrecto.
 
 Categorías a evaluar:
 
+REGLA DE GRAVEDAD — aplica ESTRICTAMENTE:
+   CRITICO: SOLO para Category A (imposibles matemáticos). Nunca para B, C o D.
+   ALTO:    Category B o C cuando el error es claro y documentable.
+   MEDIO:   Category C o D con evidencia moderada.
+   BAJO:    Category D o incertidumbre menor.
+
 A) ERRORES FÍSICOS — matemáticamente imposibles en cualquier contexto:
    - p-value fuera de [0, 1]
    - HR, OR, RR negativos o igual a cero
    - Probabilidades fuera de [0, 100%]
    - Intervalos de confianza donde lower > upper
+   → gravedad siempre CRITICO si se confirma.
 
 B) ERRORES FISIOLÓGICOS — numéricamente posibles pero biológicamente
    imposibles dado el contexto específico del abstract:
@@ -1657,7 +1664,8 @@ B) ERRORES FISIOLÓGICOS — numéricamente posibles pero biológicamente
      descritos en la literatura para esa molécula y compartimento
    - Dosis farmacológicas incompatibles con supervivencia
    - Tasas biológicas imposibles (crecimiento, división, expresión)
-   Usa tu conocimiento biomédico general — no te limites a reglas fijas.
+   Solo reporta si tienes certeza clínica. No inventes.
+   → gravedad máxima ALTO, nunca CRITICO.
 
 C) INCOHERENCIAS INTERNAS — valores que se contradicen entre sí:
    - HR/OR con efecto grande (< 0.7 o > 1.5) pero p-value > 0.05
@@ -1665,6 +1673,9 @@ C) INCOHERENCIAS INTERNAS — valores que se contradicen entre sí:
      opuestas sin explicación
    - Intervalos de confianza que no incluyen el valor nulo pero
      p-value no significativo, o viceversa
+   Solo reporta si hay valores NUMÉRICOS que se contradicen.
+   Si el abstract no tiene valores numéricos, errores: [].
+   → gravedad máxima ALTO, nunca CRITICO.
 
 D) CONTAMINACIÓN DE DATOS — parámetros que no son métricas
    clínicas del paciente sino condiciones de procesamiento:
@@ -1674,9 +1685,7 @@ D) CONTAMINACIÓN DE DATOS — parámetros que no son métricas
    - Condiciones instrumentales (absorbancia, voltaje, frecuencia)
    - Cualquier parámetro que describa cómo se procesó la muestra,
      no qué le ocurre al paciente o al tejido biológico
-   Sé exhaustivo — incluye cualquier valor que sea claramente
-   un parámetro técnico de laboratorio independientemente de cómo
-   esté formulado.
+   → gravedad máxima MEDIO, nunca CRITICO ni ALTO.
 
 TAREA 2 — VEREDICTO GLOBAL
 Basándote en lo encontrado, asigna un veredicto:
@@ -1701,7 +1710,7 @@ Responde EXCLUSIVAMENTE en este JSON, sin texto adicional:
       "categoria": "FISICO|FISIOLOGICO|INCOHERENCIA|CONTAMINACION",
       "entidad_afectada": "nombre exacto o descripción breve",
       "descripcion": "descripción concisa y accionable del problema",
-      "gravedad": "CRITICO|ALTO|MEDIO|BAJO"
+      "gravedad": "CRITICO (solo Cat.A)|ALTO (Cat.B-C)|MEDIO (Cat.C-D)|BAJO"
     }}
   ],
   "resumen": "una frase que explica el veredicto al investigador"
@@ -1802,7 +1811,7 @@ def call_gemini_extract(abstract: str, api_key: str, model_preference: str = "Au
     entidades_con_error = {
         _safe_string(e.get("entidad_afectada", "")).lower().strip()
         for e in validacion_ia.get("errores", [])
-        if e.get("gravedad") in ["CRITICO", "ALTO"]
+        if e.get("gravedad") == "CRITICO"
         and _safe_string(e.get("entidad_afectada", "")).strip()
     }
 
