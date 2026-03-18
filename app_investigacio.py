@@ -531,7 +531,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.27</span>
+    ">v1.2.28</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -553,11 +553,13 @@ st.markdown('''
 run_button = False
 
 # ── 1. TEXTAREA — acción primaria ────────────────────
+_clear = st.session_state.pop("_clear_input", False)
 abstract_text = st.text_area(
     "",
     placeholder="Introducir abstract científico para análisis biomédico...",
     height=160,
-    key="abstract_input"
+    key="abstract_input",
+    value="" if _clear else st.session_state.get("abstract_input", "")
 )
 
 # ── 2. FILA: Modo + Ejecutar ─────────────────────────
@@ -580,7 +582,7 @@ with ctrl_clear:
             st.session_state.last_results = None
             st.session_state.last_df = None
             st.session_state.last_json = None
-            st.session_state["abstract_input"] = ""
+            st.session_state["_clear_input"] = True
             st.rerun()
 
 # ── 3. API KEY — secundario ──────────────────────────
