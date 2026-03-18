@@ -531,7 +531,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.29</span>
+    ">v1.2.30</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -2177,6 +2177,22 @@ def normalize_results(
     return rows, auditoria
 
 
+def _cap_confianza_sin_metricas(payload, confianza):
+    gaps = payload.get("gaps_criticos", {})
+    metricas_gap = gaps.get("metricas_estadisticas", "")
+    frases = [
+        "no se encontraron métricas estadísticas",
+        "no se proporcionaron valores",
+        "solo declaraciones cualitativas",
+        "no disponible"
+    ]
+    sin_metricas = any(f in str(metricas_gap).lower() for f in frases)
+    n_metricas = payload.get("resumen_ejecutivo", {}).get("entidades_con_metricas", 99)
+    if sin_metricas and n_metricas < 2:
+        return min(confianza, 70)
+    return confianza
+
+
 def build_txt_report(all_payloads, final_df):
     lines_txt = []
     lines_txt.append("BIOEXTRACT - INFORME DE EXTRACCION")
@@ -2540,30 +2556,6 @@ if run_button:
     high_priority_count = len(final_df[final_df["Estado"] == "🔥"]) if not final_df.empty else 0
     manual_review_count = len(final_df[final_df["Estado"] == "🔍"]) if not final_df.empty else 0
     
-    # ── Helper: cap confianza si no hay métricas cuantitativas ──────
-    _NO_METRICAS_PHRASES = (
-        "no se encontraron métricas estadísticas cuantitativas",
-        "no se proporcionan valores específicos",
-        "no se reportan hr, or, p-values",
-        "solo declaraciones cualitativas",
-        "no disponible",
-    )
-
-    def _cap_confianza_sin_metricas(payload: dict, confianza: int) -> int:
-        gaps = payload.get("gaps_criticos", {})
-        met_gap = str(gaps.get("metricas_estadisticas", "")).lower()
-        if not any(phrase in met_gap for phrase in _NO_METRICAS_PHRASES):
-            return confianza
-        entidades = payload.get("entidades_de_riesgo", [])
-        con_metricas = sum(
-            1 for e in entidades
-            if isinstance(e.get("metricas"), dict) and any(
-                e["metricas"].get(k) is not None
-                for k in ("HR", "OR", "p_value", "ci_lower", "ci_upper", "NNT")
-            )
-        )
-        return min(confianza, 70) if con_metricas < 2 else confianza
-
     # Nivel de confianza basado en calidad de p-values y auditoría
     if all_payloads:
         avg_confidence = sum(payload.get("payload", {}).get("nivel_confianza", 0) for payload in all_payloads) / len(all_payloads)
