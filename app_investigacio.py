@@ -531,7 +531,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.26</span>
+    ">v1.2.27</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -2298,7 +2298,8 @@ confidence_level = 0
 # KPI BAR placeholder (se rellena al final con valores actuales)
 kpi_placeholder = st.empty()
 
-progress_placeholder = st.empty()
+progress_text_placeholder = st.empty()
+progress_bar_placeholder = st.empty()
 # ZONA RESULTADOS
 table_placeholder = st.empty()
 summary_placeholder = st.empty()
@@ -2405,53 +2406,52 @@ if run_button:
             st.markdown('<div class="alert-warning">Texto de abstract requerido para el modo individual</div>', unsafe_allow_html=True)
             st.stop()
 
-        progress_bar = progress_placeholder.progress(
-            0, text="⏳ Iniciando análisis..."
-        )
+        def _set_progress(valor, texto):
+            progress_text_placeholder.markdown(
+                '<div style="padding:12px 0 8px 0;">'
+                '<p style="margin:0 0 8px 0; font-family:\'DM Sans\',sans-serif; '
+                f'font-size:13px; color:var(--ink);">{texto}</p></div>',
+                unsafe_allow_html=True
+            )
+            progress_bar_placeholder.progress(valor)
+
+        _set_progress(0, "⏳ Iniciando análisis...")
         time.sleep(0.3)
-        progress_bar.progress(
-            15, text="📖 Leyendo abstract..."
-        )
+        _set_progress(15, "📖 Leyendo abstract...")
         time.sleep(0.4)
-        progress_bar.progress(
-            30, text="🧬 Extrayendo entidades biomédicas..."
-        )
+        _set_progress(30, "🧬 Extrayendo entidades biomédicas...")
         try:
             payload = call_gemini_extract(
                 current_abstract, api_key, model_pref
             )
-            
-            progress_bar.progress(
-                65, text="📊 Estructurando métricas estadísticas..."
-            )
+
+            _set_progress(65, "📊 Estructurando métricas estadísticas...")
             time.sleep(0.3)
-            progress_bar.progress(
-                80, text="🔍 Validando invariantes matemáticos..."
-            )
+            _set_progress(80, "🔍 Validando invariantes matemáticos...")
             time.sleep(0.3)
-            
+
             all_payloads.append({"ID_Abstract": "manual_1", "payload": payload})
-            
+
             # Procesar alertas de validación y densidad
             for alert in payload.get("validacion_alertas", []):
                 sensor_alerts.append((1, alert))
             for alert in payload.get("alertas_densidad", []):
                 sensor_alerts.append((1, f"Alerta Densidad: {alert}"))
-            
+
             # Normalizar resultados con estructura jerárquica
             rows, summary = normalize_results_hierarchical(
                 payload, "manual_1", 1
             )
             all_rows.extend(rows)
-            
-            progress_bar.progress(
-                95, text="✅ Generando resultado estructurado..."
-            )
+
+            _set_progress(95, "✅ Generando resultado estructurado...")
             time.sleep(0.4)
-            progress_bar.progress(100, text="✅ Análisis completado")
+            _set_progress(100, "✅ Análisis completado")
             time.sleep(0.5)
-            progress_placeholder.empty()
-            
+            progress_text_placeholder.empty()
+            progress_bar_placeholder.empty()
+            st.markdown('<div style="margin-bottom:16px;"></div>', unsafe_allow_html=True)
+
             if es_demo:
                 st.session_state.demo_count += 1
         except Exception as exc:
@@ -2462,7 +2462,7 @@ if run_button:
                     unsafe_allow_html=True,
                 )
             errors.append((1, str(exc)))
-            progress_bar.progress(100, text="Error")
+            _set_progress(100, "Error")
 
     else:  # Modo Masivo
         if uploaded_file is None or file_df.empty or not selected_column:
@@ -2477,11 +2477,23 @@ if run_button:
             st.markdown('<div class="alert-warning">Ningún abstract válido encontrado</div>', unsafe_allow_html=True)
             st.stop()
 
-        progress_bar = progress_placeholder.progress(0, text=f"Procesando {total} abstracts...")
+        progress_text_placeholder.markdown(
+            '<div style="padding:12px 0 8px 0;">'
+            '<p style="margin:0 0 8px 0; font-family:\'DM Sans\',sans-serif; '
+            f'font-size:13px; color:var(--ink);">Procesando {total} abstracts...</p></div>',
+            unsafe_allow_html=True
+        )
+        progress_bar_placeholder.progress(0)
 
         for idx, (row_idx, abstract) in enumerate(abstracts_series.items(), start=1):
             percent = int(idx / total * 100)
-            progress_bar.progress(percent, text=f"🔄 Procesando abstract {idx}/{total}...")
+            progress_text_placeholder.markdown(
+                '<div style="padding:12px 0 8px 0;">'
+                '<p style="margin:0 0 8px 0; font-family:\'DM Sans\',sans-serif; '
+                f'font-size:13px; color:var(--ink);">🔄 Procesando abstract {idx}/{total}...</p></div>',
+                unsafe_allow_html=True
+            )
+            progress_bar_placeholder.progress(percent)
             source_id = f"file_{row_idx + 1}"
             try:
                 payload = call_gemini_extract(abstract.strip(), api_key, model_pref)
@@ -2500,7 +2512,17 @@ if run_button:
                 errors.append((row_idx + 1, str(exc)))
                 continue
 
-        progress_bar.progress(100, text="Procesamiento completado")
+        progress_text_placeholder.markdown(
+            '<div style="padding:12px 0 8px 0;">'
+            '<p style="margin:0 0 8px 0; font-family:\'DM Sans\',sans-serif; '
+            'font-size:13px; color:var(--ink);">✅ Procesamiento completado</p></div>',
+            unsafe_allow_html=True
+        )
+        progress_bar_placeholder.progress(100)
+        time.sleep(0.5)
+        progress_text_placeholder.empty()
+        progress_bar_placeholder.empty()
+        st.markdown('<div style="margin-bottom:16px;"></div>', unsafe_allow_html=True)
         
         if es_demo:
             st.session_state.demo_count += len(all_payloads)
