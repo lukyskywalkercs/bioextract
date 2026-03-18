@@ -397,17 +397,15 @@ div[data-testid="stProgressBar"] > div {
 .stProgress {
     margin-bottom: 4px !important;
 }
-/* Progress text — scoped, no afecta otros markdown containers */
+/* Progress text — el container ocupa todo el ancho disponible */
 .stProgress [data-testid="stMarkdownContainer"] {
-    overflow: hidden !important;
-    max-width: 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
 }
 .stProgress [data-testid="stMarkdownContainer"] p {
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    max-width: 100% !important;
+    width: 100% !important;
     margin: 0 0 4px 0 !important;
+    white-space: normal !important;
 }
 
 /* Separación entre barra y texto */
