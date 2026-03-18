@@ -531,7 +531,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.25</span>
+    ">v1.2.26</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -2188,7 +2188,7 @@ def build_txt_report(all_payloads, final_df):
         _payload = p.get("payload", {})
         _abstract_id = p.get("ID_Abstract", "file_" + str(i))
         _entidades = _payload.get("entidades_de_riesgo", [])
-        _confianza = _payload.get("nivel_confianza", 0)
+        _confianza = _cap_confianza_sin_metricas(_payload, _payload.get("nivel_confianza", 0))
         _senales = _payload.get("senales_prioritarias", [])
         _gaps = _payload.get("gaps_criticos", {})
         _criticos = [
@@ -2516,10 +2516,37 @@ if run_button:
     high_priority_count = len(final_df[final_df["Estado"] == "🔥"]) if not final_df.empty else 0
     manual_review_count = len(final_df[final_df["Estado"] == "🔍"]) if not final_df.empty else 0
     
+    # ── Helper: cap confianza si no hay métricas cuantitativas ──────
+    _NO_METRICAS_PHRASES = (
+        "no se encontraron métricas estadísticas cuantitativas",
+        "no se proporcionan valores específicos",
+        "no se reportan hr, or, p-values",
+        "solo declaraciones cualitativas",
+        "no disponible",
+    )
+
+    def _cap_confianza_sin_metricas(payload: dict, confianza: int) -> int:
+        gaps = payload.get("gaps_criticos", {})
+        met_gap = str(gaps.get("metricas_estadisticas", "")).lower()
+        if not any(phrase in met_gap for phrase in _NO_METRICAS_PHRASES):
+            return confianza
+        entidades = payload.get("entidades_de_riesgo", [])
+        con_metricas = sum(
+            1 for e in entidades
+            if isinstance(e.get("metricas"), dict) and any(
+                e["metricas"].get(k) is not None
+                for k in ("HR", "OR", "p_value", "ci_lower", "ci_upper", "NNT")
+            )
+        )
+        return min(confianza, 70) if con_metricas < 2 else confianza
+
     # Nivel de confianza basado en calidad de p-values y auditoría
     if all_payloads:
         avg_confidence = sum(payload.get("payload", {}).get("nivel_confianza", 0) for payload in all_payloads) / len(all_payloads)
         confidence_level = int(avg_confidence)
+        # Cap individual: un solo abstract sin métricas cuantitativas
+        if len(all_payloads) == 1:
+            confidence_level = _cap_confianza_sin_metricas(all_payloads[0].get("payload", {}), confidence_level)
     else:
         confidence_level = 0
     
@@ -2898,7 +2925,7 @@ if run_button or results_to_show:
                 _payload = p.get("payload", {})
                 _abstract_id = p.get("ID_Abstract", "file_" + str(i))
                 _entidades = _payload.get("entidades_de_riesgo", [])
-                _confianza = _payload.get("nivel_confianza", 0)
+                _confianza = _cap_confianza_sin_metricas(_payload, _payload.get("nivel_confianza", 0))
                 _senales = _payload.get("senales_prioritarias", _payload.get("se\u00f1ales_prioritarias", []))
                 _criticos = sum(
                     1 for e in _entidades
@@ -2937,7 +2964,7 @@ if run_button or results_to_show:
                 _payload = p.get("payload", {})
                 _abstract_id = p.get("ID_Abstract", "file_" + str(i))
                 _entidades = _payload.get("entidades_de_riesgo", [])
-                _confianza = _payload.get("nivel_confianza", 0)
+                _confianza = _cap_confianza_sin_metricas(_payload, _payload.get("nivel_confianza", 0))
                 _senales = _payload.get("senales_prioritarias", _payload.get("se\u00f1ales_prioritarias", []))
                 _criticos = sum(
                     1 for e in _entidades
