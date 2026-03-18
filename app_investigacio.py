@@ -531,7 +531,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.33</span>
+    ">v1.2.34</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -2238,7 +2238,8 @@ def build_txt_report(all_payloads, final_df):
         _payload = p.get("payload", {})
         _abstract_id = p.get("ID_Abstract", "file_" + str(i))
         _entidades = _payload.get("entidades_de_riesgo", [])
-        _confianza = _payload.get("nivel_confianza", 0)
+        _confianza_raw = _payload.get("nivel_confianza", 0)
+        _confianza = _cap_confianza_sin_metricas(_payload, _confianza_raw)
         _senales = _payload.get("senales_prioritarias", [])
         _gaps = _payload.get("gaps_criticos", {})
         _criticos = [
@@ -2703,6 +2704,9 @@ if run_button or results_to_show:
         errors = results_to_show["errors"]
         sensor_alerts = results_to_show["sensor_alerts"]
         error_count = results_to_show["error_count"]
+        processed_count = results_to_show["processed_count"]
+        entity_count = results_to_show["entity_count"]
+        total_alerts = results_to_show["total_alerts"]
 
     # ── RIGHT COL: 5 SECCIONES CLÍNICAS ──────────────────────────
     with table_placeholder.container():
