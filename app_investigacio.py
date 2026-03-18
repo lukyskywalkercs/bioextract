@@ -531,7 +531,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.30</span>
+    ">v1.2.31</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -2177,6 +2177,15 @@ def normalize_results(
     return rows, auditoria
 
 
+def _tiene_metrica_numerica(metricas_str):
+    if not metricas_str:
+        return False
+    s = str(metricas_str).strip()
+    if s in ["—", "NO DISPONIBLE", "", "-"]:
+        return False
+    return bool(re.search(r'\d+\.?\d*', s))
+
+
 def _cap_confianza_sin_metricas(payload, confianza):
     gaps = payload.get("gaps_criticos", {})
     metricas_gap = gaps.get("metricas_estadisticas", "")
@@ -2187,7 +2196,14 @@ def _cap_confianza_sin_metricas(payload, confianza):
         "no disponible"
     ]
     sin_metricas = any(f in str(metricas_gap).lower() for f in frases)
-    n_metricas = payload.get("resumen_ejecutivo", {}).get("entidades_con_metricas", 99)
+    entidades = payload.get("entidades_de_riesgo", [])
+    n_metricas = sum(
+        1 for e in entidades
+        if isinstance(e.get("metricas"), dict) and any(
+            e["metricas"].get(k) is not None
+            for k in ("HR", "OR", "p_value", "ci_lower", "ci_upper", "NNT")
+        )
+    )
     if sin_metricas and n_metricas < 2:
         return min(confianza, 70)
     return confianza
