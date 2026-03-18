@@ -531,7 +531,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.28</span>
+    ">v1.2.29</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -2190,7 +2190,7 @@ def build_txt_report(all_payloads, final_df):
         _payload = p.get("payload", {})
         _abstract_id = p.get("ID_Abstract", "file_" + str(i))
         _entidades = _payload.get("entidades_de_riesgo", [])
-        _confianza = _cap_confianza_sin_metricas(_payload, _payload.get("nivel_confianza", 0))
+        _confianza = _payload.get("nivel_confianza", 0)
         _senales = _payload.get("senales_prioritarias", [])
         _gaps = _payload.get("gaps_criticos", {})
         _criticos = [
