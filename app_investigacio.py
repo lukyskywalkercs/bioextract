@@ -531,7 +531,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.32</span>
+    ">v1.2.33</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -2210,24 +2210,17 @@ def _tiene_metrica_numerica(metricas_str):
 
 
 def _cap_confianza_sin_metricas(payload, confianza):
-    gaps = payload.get("gaps_criticos", {})
-    metricas_gap = gaps.get("metricas_estadisticas", "")
-    frases = [
-        "no se encontraron métricas estadísticas",
-        "no se proporcionaron valores",
-        "solo declaraciones cualitativas",
-        "no disponible"
-    ]
-    sin_metricas = any(f in str(metricas_gap).lower() for f in frases)
     entidades = payload.get("entidades_de_riesgo", [])
+    CLAVES = {"HR", "OR", "p_value", "ci_lower", "ci_upper", "NNT"}
     n_metricas = sum(
         1 for e in entidades
-        if isinstance(e.get("metricas"), dict) and any(
+        if isinstance(e.get("metricas"), dict)
+        and any(
             e["metricas"].get(k) is not None
-            for k in ("HR", "OR", "p_value", "ci_lower", "ci_upper", "NNT")
+            for k in CLAVES
         )
     )
-    if sin_metricas and n_metricas < 2:
+    if n_metricas < 2:
         return min(confianza, 70)
     return confianza
 
