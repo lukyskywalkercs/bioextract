@@ -531,7 +531,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.31</span>
+    ">v1.2.32</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -2177,6 +2177,29 @@ def normalize_results(
     return rows, auditoria
 
 
+def _recalcular_entidades_con_metricas(payload):
+    CLAVES_ESTADISTICAS = {
+        "HR", "OR", "p_value", "ci_lower",
+        "ci_upper", "NNT", "n_absoluto",
+        "tasa_100k", "incidencia_anual_pct",
+        "mortalidad_pct", "diagnostico_estadio_pct"
+    }
+    entidades = payload.get("entidades_de_riesgo", [])
+    n = sum(
+        1 for e in entidades
+        if isinstance(e.get("metricas"), dict)
+        and any(
+            k in CLAVES_ESTADISTICAS
+            and e["metricas"].get(k) is not None
+            for k in e.get("metricas", {})
+        )
+    )
+    if "resumen_ejecutivo" not in payload:
+        payload["resumen_ejecutivo"] = {}
+    payload["resumen_ejecutivo"]["entidades_con_metricas"] = n
+    return payload
+
+
 def _tiene_metrica_numerica(metricas_str):
     if not metricas_str:
         return False
@@ -2458,6 +2481,7 @@ if run_button:
             payload = call_gemini_extract(
                 current_abstract, api_key, model_pref
             )
+            payload = _recalcular_entidades_con_metricas(payload)
 
             _set_progress(65, "📊 Estructurando métricas estadísticas...")
             time.sleep(0.3)
@@ -2531,6 +2555,7 @@ if run_button:
             source_id = f"file_{row_idx + 1}"
             try:
                 payload = call_gemini_extract(abstract.strip(), api_key, model_pref)
+                payload = _recalcular_entidades_con_metricas(payload)
                 all_payloads.append({"ID_Abstract": source_id, "payload": payload})
                 
                 # Procesar alertas de validación y densidad
