@@ -531,7 +531,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.34</span>
+    ">v1.2.35</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -1734,25 +1734,11 @@ tiene_errores: false, veredicto: OPTIMA, errores: []
 """
 
     try:
-        validation_response = None
-        for vmodel in ["gemini-2.5-flash", "gemini-1.5-flash"]:
-            for vattempt in range(2):
-                try:
-                    model = genai.GenerativeModel(vmodel)
-                    validation_response = model.generate_content(
-                        prompt,
-                        generation_config={"temperature": 0.0, "response_mime_type": "application/json"}
-                    )
-                    break
-                except Exception as vexc:
-                    if "500" in str(vexc) and vattempt == 0:
-                        time.sleep(2)
-                        continue
-                    break
-            if validation_response is not None:
-                break
-        if validation_response is None:
-            raise RuntimeError("Validacion IA sin respuesta")
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        validation_response = model.generate_content(
+            prompt,
+            generation_config={"temperature": 0.0, "response_mime_type": "application/json"}
+        )
         return json.loads(validation_response.text)
     except Exception:
         return {
@@ -1771,39 +1757,17 @@ def call_gemini_extract(abstract: str, api_key: str, model_preference: str = "Au
 
     genai.configure(api_key=api_key)
     
-    # Configurar models segons preferència
-    if model_preference == "Gemini 2.5 Flash":
-        model_candidates = ["gemini-2.5-flash"]
-    elif model_preference == "Gemini 1.5 Flash":
-        model_candidates = ["gemini-1.5-flash"]
-    else:  # Automàtic
-        model_candidates = ["gemini-2.5-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash"]
-    
-    # Garantizar gemini-1.5-flash como ultimo recurso
-    if "gemini-1.5-flash" not in model_candidates:
-        model_candidates = list(model_candidates) + ["gemini-1.5-flash"]
-
     response = None
-    last_error = None
-    for model_name in model_candidates:
-        for attempt in range(2):
-            try:
-                model = genai.GenerativeModel(model_name)
-                response = model.generate_content(
-                    build_prompt(abstract),
-                    generation_config={"temperature": 0.0, "response_mime_type": "application/json"},
-                )
-                break
-            except Exception as exc:
-                last_error = exc
-                if "500" in str(exc) and attempt == 0:
-                    time.sleep(2)
-                    continue
-                break
-        if response is not None:
-            break
+    try:
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        response = model.generate_content(
+            build_prompt(abstract),
+            generation_config={"temperature": 0.0, "response_mime_type": "application/json"},
+        )
+    except Exception as exc:
+        raise ValueError("Modelo gemini-2.5-flash no disponible. Verifica tu API key o intenta más tarde.") from exc
     if response is None:
-        raise ValueError(f"No ha estat possible invocar un model Gemini disponible: {last_error}")
+        raise ValueError("Modelo gemini-2.5-flash no disponible. Verifica tu API key o intenta más tarde.")
 
     raw_text = response.text if hasattr(response, "text") else ""
     if not raw_text:
@@ -2448,7 +2412,7 @@ if run_button:
     sensor_alerts: List[Tuple[int, str]] = []
 
     # Mapear preferencias de modelo
-    model_map = {"Auto": "Automático (recomendado)", "Gemini 2.5": "Gemini 2.5 Flash", "Gemini 1.5": "Gemini 1.5 Flash"}
+    model_map = {"Auto": "Gemini 2.5 Flash", "Gemini 2.5": "Gemini 2.5 Flash", "Gemini 1.5": "Gemini 2.5 Flash"}
     model_pref = model_map.get(model_preference, "Automático (recomendado)")
 
     if mode == "Individual":
