@@ -531,7 +531,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.37</span>
+    ">v1.2.38</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -2746,6 +2746,13 @@ if run_button:
                 if key not in hierarchical_json["gaps_criticos"] or \
                         hierarchical_json["gaps_criticos"][key] == "NO DISPONIBLE":
                     hierarchical_json["gaps_criticos"][key] = value
+
+        if all_payloads:
+            _first = all_payloads[0].get("payload", {})
+            hierarchical_json["resumen_ejecutivo"]["tipo_estudio"] = _first.get("resumen_ejecutivo", {}).get("tipo_estudio") or _first.get("metadata", {}).get("tipo_estudio", "desconocido")
+            hierarchical_json["resumen_ejecutivo"]["diseno_metodologico"] = _first.get("resumen_ejecutivo", {}).get("diseno_metodologico") or _first.get("metadata", {}).get("diseno_metodologico", "desconocido")
+            hierarchical_json["metadata"]["tipo_estudio"] = hierarchical_json["resumen_ejecutivo"]["tipo_estudio"]
+            hierarchical_json["metadata"]["diseno_metodologico"] = hierarchical_json["resumen_ejecutivo"]["diseno_metodologico"]
 
     # Persistir resultados en session_state
     st.session_state.last_df = final_df
