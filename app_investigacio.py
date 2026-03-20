@@ -531,7 +531,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.38</span>
+    ">v1.2.39</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -2328,6 +2328,24 @@ def build_txt_report(all_payloads, final_df):
             _veredicto = "COBERTURA BAJA"
         lines_txt.append("ABSTRACT " + str(i) + " - " + str(_abstract_id))
         lines_txt.append(_veredicto + " - " + str(_confianza) + "% confianza")
+        _tipo_estudio = _payload.get("metadata", {}).get(
+            "tipo_estudio", ""
+        ) or _payload.get("resumen_ejecutivo", {}).get(
+            "tipo_estudio", ""
+        )
+        _diseno = _payload.get("metadata", {}).get(
+            "diseno_metodologico", ""
+        ) or _payload.get("resumen_ejecutivo", {}).get(
+            "diseno_metodologico", ""
+        )
+        if _tipo_estudio:
+            lines_txt.append(
+                "Tipo de estudio: " + str(_tipo_estudio)
+            )
+        if _diseno and _diseno != "desconocido":
+            lines_txt.append(
+                "Diseño metodológico: " + str(_diseno)
+            )
         lines_txt.append("-" * 55)
         if _criticos:
             lines_txt.append("ANOMALIAS CRITICAS:")
