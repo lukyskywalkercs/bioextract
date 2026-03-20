@@ -531,7 +531,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.36</span>
+    ">v1.2.37</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -1211,7 +1211,8 @@ def coerce_payload(data: Dict[str, Any], abstract_text: str = "") -> Dict[str, A
         "fuente": _safe_string(metadata.get("fuente")),
         "nivel_evidencia": _safe_string(metadata.get("nivel_evidencia", "desconocido")),
         "periodo_datos": _safe_string(metadata.get("periodo_datos")),
-        "tipo_estudio": _safe_string(metadata.get("tipo_estudio"))
+        "tipo_estudio": _safe_string(metadata.get("tipo_estudio")),
+        "diseno_metodologico": _safe_string(metadata.get("diseno_metodologico", "desconocido"))
     }
     
     # Procesar entidades de riesgo con exhaustividad (con fallback para compatibilidad)
@@ -1338,8 +1339,15 @@ def coerce_payload(data: Dict[str, Any], abstract_text: str = "") -> Dict[str, A
         "interacciones_farmacologicas": _safe_string(gaps.get("interacciones_farmacologicas", "NO DISPONIBLE"))
     }
     
+    raw_resum = data.get("resumen_ejecutivo", {}) or {}
+    processed_resumen = {
+        "tipo_estudio": _safe_string(raw_resum.get("tipo_estudio", processed_metadata.get("tipo_estudio", "desconocido"))),
+        "diseno_metodologico": _safe_string(raw_resum.get("diseno_metodologico", processed_metadata.get("diseno_metodologico", "desconocido")))
+    }
+
     return {
         "metadata": processed_metadata,
+        "resumen_ejecutivo": processed_resumen,
         "entidades_de_riesgo": processed_entidades,
         "señales_prioritarias": processed_señales,
         "gaps_criticos": processed_gaps,
