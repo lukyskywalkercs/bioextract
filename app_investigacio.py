@@ -531,7 +531,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.40</span>
+    ">v1.2.41</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -1813,6 +1813,7 @@ def call_gemini_extract(abstract: str, api_key: str, model_preference: str = "Au
     # Segunda llamada — validación científica universal
     entidades_para_validar = coerced.get("entidades_de_riesgo", [])
     validacion_ia = validate_with_ai(abstract, entidades_para_validar, api_key)
+    validacion_ia = _filter_false_paradox(validacion_ia, abstract, entidades_para_validar)
 
     # Propagar veredicto de la IA al payload
     coerced["validacion_cientifica"] = validacion_ia
@@ -2302,6 +2303,51 @@ def _check_minimum_metrics(payload, abstract_text):
         gaps["metricas_minimas"] = "Diseño caso-control sin Odds Ratio."
 
     return payload
+
+
+def _filter_false_paradox(validacion, abstract_text, entidades):
+    PALABRAS_MEJORA = {
+        "improvement", "increase", "better",
+        "higher", "benefit", "favorable",
+        "improved", "correlated with improved",
+        "correlated with a",
+    }
+    text_lower = str(abstract_text).lower()
+
+    fragmentos = {}
+    for e in entidades:
+        nombre = _safe_string(e.get("entidad", "")).lower().strip()
+        frag = _safe_string(e.get("fragmento_fuente", "")).lower()
+        if nombre:
+            fragmentos[nombre] = frag
+
+    def _tiene_mejora(texto):
+        t = str(texto).lower()
+        return any(p in t for p in PALABRAS_MEJORA)
+
+    errores_orig = validacion.get("errores", [])
+    errores_filtrados = []
+    for err in errores_orig:
+        categoria = _safe_string(err.get("categoria", "")).upper()
+        tipo = _safe_string(err.get("tipo", "")).lower()
+        if categoria == "INCOHERENCIA" or "paradoja" in tipo or "hr" in tipo:
+            entidad_err = _safe_string(err.get("entidad_afectada", "")).lower().strip()
+            frag_entidad = fragmentos.get(entidad_err, "")
+            if _tiene_mejora(frag_entidad) or _tiene_mejora(text_lower):
+                continue
+        errores_filtrados.append(err)
+    validacion["errores"] = errores_filtrados
+
+    señales_orig = validacion.get("señales_prioritarias", [])
+    validacion["señales_prioritarias"] = [
+        s for s in señales_orig
+        if not (
+            _safe_string(s.get("tipo", "")).lower() == "paradoja"
+            and _tiene_mejora(s.get("descripcion", ""))
+        )
+    ]
+
+    return validacion
 
 
 def build_txt_report(all_payloads, final_df):
