@@ -531,7 +531,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.46</span>
+    ">v1.2.47</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -1845,23 +1845,23 @@ def call_gemini_extract(abstract: str, api_key: str, model_preference: str = "Au
     gaps = coerced.get("gaps_criticos", {})
     tipo_estudio = detect_study_type(coerced.get("metadata", {}))
 
-    # Confianza base desde Gemini
-    confianza_ia = validacion_ia.get("nivel_confianza_cientifico", 70)
-    confianza_ia = max(confianza_ia, 65)
+    # Score determinista — función Python calibrada, independiente de Gemini
+    score_det, _ = calculate_hierarchical_confidence(
+        entitats, senyals, gaps, coerced.get("metadata", {})
+    )
 
-    # La única penalización es por errores matemáticos críticos
-    # detectados en entidades ya procesadas
+    # Caps por errores matemáticos críticos detectados en entidades ya procesadas
     criticos = sum(
         1 for e in coerced.get("entidades_de_riesgo", [])
         if str(e.get("riesgo_omision", "")).upper() == "CRÍTICO"
     )
 
     if criticos >= 2:
-        nivel_confianza_final = min(confianza_ia, 40)
+        nivel_confianza_final = min(score_det, 40)
     elif criticos == 1:
-        nivel_confianza_final = min(confianza_ia, 60)
+        nivel_confianza_final = min(score_det, 60)
     else:
-        nivel_confianza_final = confianza_ia
+        nivel_confianza_final = score_det
 
     coerced["nivel_confianza"] = nivel_confianza_final
     coerced["tipo_estudio_detectado"] = tipo_estudio
