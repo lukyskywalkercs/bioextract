@@ -531,7 +531,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.43</span>
+    ">v1.2.44</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -542,8 +542,8 @@ st.markdown('''
         line-height: 1.5;
         max-width: 420px;
         text-align: right;
-    ">Extrae entidades biomédicas · Detecta anomalías matemáticas<br>
-    No evalúa calidad metodológica · No reemplaza el paper original</span>
+    ">Extracts biomedical entities · Detects mathematical anomalies<br>
+    Does not evaluate methodological quality · Does not replace the original paper</span>
 </div>
 ''', unsafe_allow_html=True)
 
@@ -556,7 +556,7 @@ run_button = False
 _clear = st.session_state.pop("_clear_input", False)
 abstract_text = st.text_area(
     "",
-    placeholder="Introducir abstract científico para análisis biomédico...",
+    placeholder="Enter scientific abstract for biomedical analysis...",
     height=160,
     key="abstract_input",
     value="" if _clear else st.session_state.get("abstract_input", "")
@@ -573,12 +573,12 @@ with ctrl_mode:
     )
 with ctrl_btn:
     run_button = st.button(
-        "⬡  Ejecutar análisis",
+        "⬡  Run analysis",
         type="primary",
     )
 with ctrl_clear:
     if st.session_state.get("last_results") is not None:
-        if st.button("✕ Limpiar", help="Borrar análisis y empezar de nuevo"):
+        if st.button("✕ Clear", help="Delete analysis and start over"):
             st.session_state.last_results = None
             st.session_state.last_df = None
             st.session_state.last_json = None
@@ -589,7 +589,7 @@ with ctrl_clear:
 user_api_key = st.text_input(
     "api_key_input",
     type="password",
-    placeholder="Gemini API key  —  5 análisis gratuitos si la dejas en blanco",
+    placeholder="Gemini API key  —  5 free analyses if left blank",
     label_visibility="collapsed"
 )
 
@@ -606,12 +606,12 @@ def load_file_data(uploaded_file) -> pd.DataFrame:
         return pd.read_csv(uploaded_file)
     if name.endswith(".xlsx") or name.endswith(".xls"):
         return pd.read_excel(uploaded_file)
-    raise ValueError("Formato no soportado. Usa CSV o Excel.")
+    raise ValueError("Unsupported format. Use CSV or Excel.")
 
 
 if mode == "Masivo":
     st.markdown(
-        '<div class="section-label">ARCHIVO CSV / EXCEL</div>',
+        '<div class="section-label">CSV / EXCEL FILE</div>',
         unsafe_allow_html=True
     )
     up1, up2 = st.columns([3, 2])
@@ -627,13 +627,13 @@ if mode == "Masivo":
             try:
                 file_df = load_file_data(uploaded_file)
                 if file_df.empty:
-                    st.warning("⚠️ Archivo vacío")
+                    st.warning("⚠️ Empty file")
                 else:
                     selected_column = st.selectbox(
-                        "Columna de abstracts",
+                        "Abstract column",
                         options=list(file_df.columns)
                     )
-                    st.caption(f"✅ {len(file_df)} registros cargados")
+                    st.caption(f"✅ {len(file_df)} records loaded")
             except Exception as exc:
                 st.error(f"❌ Error: {exc}")
 
@@ -2562,12 +2562,12 @@ if run_button:
     if not api_key:
         st.markdown('''
         <div class="verdict-warning">
-            🔑 Introduce tu API key de Gemini para continuar, 
-            o despliega la app con tu propia key en secrets.
+            🔑 Enter your Gemini API key to continue,
+            or deploy the app with your own key in secrets.
             <a href="https://aistudio.google.com/app/apikey" 
                target="_blank" 
                style="color: #1A56DB; margin-left: 8px;">
-                Obtener key gratuita →
+                Get free key →
             </a>
         </div>
         ''', unsafe_allow_html=True)
@@ -2576,13 +2576,13 @@ if run_button:
     if es_demo and st.session_state.demo_count >= DEMO_LIMIT:
         st.markdown(f'''
         <div class="verdict-critical">
-            🔒 Has usado los {DEMO_LIMIT} análisis gratuitos 
-            de esta sesión. Introduce tu propia API key de 
-            Gemini para continuar sin límite.
+            🔒 You have used your {DEMO_LIMIT} free analyses
+            for this session. Enter your own Gemini API key
+            to continue without limits.
             <a href="https://aistudio.google.com/app/apikey" 
                target="_blank"
                style="color: #991B1B; margin-left: 8px; font-weight: 600;">
-                Obtener key gratuita en 2 minutos →
+                Get free key in 2 minutes →
             </a>
         </div>
         ''', unsafe_allow_html=True)
@@ -2600,7 +2600,7 @@ if run_button:
     if mode == "Individual":
         current_abstract = abstract_text.strip()
         if not current_abstract:
-            st.markdown('<div class="alert-warning">Texto de abstract requerido para el modo individual</div>', unsafe_allow_html=True)
+            st.markdown('<div class="alert-warning">Abstract text required for individual mode</div>', unsafe_allow_html=True)
             st.stop()
 
         def _set_progress(valor, texto):
@@ -2612,11 +2612,11 @@ if run_button:
             )
             progress_bar_placeholder.progress(valor)
 
-        _set_progress(0, "⏳ Iniciando análisis...")
+        _set_progress(0, "⏳ Starting analysis...")
         time.sleep(0.3)
-        _set_progress(15, "📖 Leyendo abstract...")
+        _set_progress(15, "📖 Reading abstract...")
         time.sleep(0.4)
-        _set_progress(30, "🧬 Extrayendo entidades biomédicas...")
+        _set_progress(30, "🧬 Extracting biomedical entities...")
         try:
             payload = call_gemini_extract(
                 current_abstract, api_key, model_pref
@@ -2625,9 +2625,9 @@ if run_button:
             payload = _check_survival_triggers(payload, current_abstract)
             payload = _check_minimum_metrics(payload, current_abstract)
 
-            _set_progress(65, "📊 Estructurando métricas estadísticas...")
+            _set_progress(65, "📊 Structuring statistical metrics...")
             time.sleep(0.3)
-            _set_progress(80, "🔍 Validando invariantes matemáticos...")
+            _set_progress(80, "🔍 Validating mathematical invariants...")
             time.sleep(0.3)
 
             all_payloads.append({"ID_Abstract": "manual_1", "payload": payload})
@@ -2644,9 +2644,9 @@ if run_button:
             )
             all_rows.extend(rows)
 
-            _set_progress(95, "✅ Generando resultado estructurado...")
+            _set_progress(95, "✅ Generating structured result...")
             time.sleep(0.4)
-            _set_progress(100, "✅ Análisis completado")
+            _set_progress(100, "✅ Analysis complete")
             time.sleep(0.5)
             progress_text_placeholder.empty()
             progress_bar_placeholder.empty()
@@ -2658,7 +2658,7 @@ if run_button:
             if "Dato No Fiable" in str(exc) or "contenido no" in str(exc):
                 coherence_reason = str(exc).split(":")[-1].strip() if ":" in str(exc) else str(exc)
                 st.markdown(
-                    f'<div class="alert-danger">🚫 Filtro de Coherencia: {coherence_reason}</div>',
+                    f'<div class="alert-danger">🚫 Coherence Filter: {coherence_reason}</div>',
                     unsafe_allow_html=True,
                 )
             errors.append((1, str(exc)))
@@ -2666,7 +2666,7 @@ if run_button:
 
     else:  # Modo Masivo
         if uploaded_file is None or file_df.empty or not selected_column:
-            st.markdown('<div class="alert-warning">Archivo y columna requeridos para el modo masivo</div>', unsafe_allow_html=True)
+            st.markdown('<div class="alert-warning">File and column required for batch mode</div>', unsafe_allow_html=True)
             st.stop()
 
         abstracts_series = file_df[selected_column].dropna().astype(str)
@@ -2674,13 +2674,13 @@ if run_button:
         total = len(abstracts_series)
 
         if total == 0:
-            st.markdown('<div class="alert-warning">Ningún abstract válido encontrado</div>', unsafe_allow_html=True)
+            st.markdown('<div class="alert-warning">No valid abstracts found</div>', unsafe_allow_html=True)
             st.stop()
 
         progress_text_placeholder.markdown(
             '<div style="padding:12px 0 8px 0;">'
             '<p style="margin:0 0 8px 0; font-family:\'DM Sans\',sans-serif; '
-            f'font-size:13px; color:var(--ink);">Procesando {total} abstracts...</p></div>',
+            f'font-size:13px; color:var(--ink);">Processing {total} abstracts...</p></div>',
             unsafe_allow_html=True
         )
         progress_bar_placeholder.progress(0)
@@ -2690,7 +2690,7 @@ if run_button:
             progress_text_placeholder.markdown(
                 '<div style="padding:12px 0 8px 0;">'
                 '<p style="margin:0 0 8px 0; font-family:\'DM Sans\',sans-serif; '
-                f'font-size:13px; color:var(--ink);">🔄 Procesando abstract {idx}/{total}...</p></div>',
+                f'font-size:13px; color:var(--ink);">🔄 Processing abstract {idx}/{total}...</p></div>',
                 unsafe_allow_html=True
             )
             progress_bar_placeholder.progress(percent)
@@ -2718,7 +2718,7 @@ if run_button:
         progress_text_placeholder.markdown(
             '<div style="padding:12px 0 8px 0;">'
             '<p style="margin:0 0 8px 0; font-family:\'DM Sans\',sans-serif; '
-            'font-size:13px; color:var(--ink);">✅ Procesamiento completado</p></div>',
+            'font-size:13px; color:var(--ink);">✅ Processing complete</p></div>',
             unsafe_allow_html=True
         )
         progress_bar_placeholder.progress(100)
@@ -2870,10 +2870,10 @@ if run_button or results_to_show:
 
         # ══ SECCIÓN 1 — VEREDICTO DEL ANÁLISIS ════════════════════
         st.markdown('''
-        <div class="section-label">VEREDICTO DEL ANÁLISIS</div>
+        <div class="section-label">ANALYSIS VERDICT</div>
         <div style="font-size:11px; color:#8896A5; margin-bottom:10px;">
-            Evaluación automática de la integridad matemática del abstract.
-            No evalúa calidad metodológica.
+            Automatic evaluation of the abstract's mathematical integrity.
+            Does not evaluate methodological quality.
         </div>
         ''', unsafe_allow_html=True)
 
@@ -2881,14 +2881,14 @@ if run_button or results_to_show:
             st.markdown(f'''
             <div class="verdict-critical">
                 <div class="verdict-title" style="font-size:14px; font-weight:600; margin-bottom:6px;">
-                    Anomalía matemática crítica detectada
+                    Critical mathematical anomaly detected
                 </div>
                 <div style="font-size:13px;">
-                    Se encontraron valores estadísticamente imposibles.
-                    Revisar el abstract antes de usar estos datos en ningún análisis.
+                    Statistically impossible values were found.
+                    Review the abstract before using this data in any analysis.
                 </div>
                 <div style="font-size:11px; margin-top:8px; opacity:0.8;">
-                    Confianza de extracción: {confidence_level}%
+                    Extraction confidence: {confidence_level}%
                 </div>
             </div>
             ''', unsafe_allow_html=True)
@@ -2896,14 +2896,14 @@ if run_button or results_to_show:
             st.markdown(f'''
             <div class="verdict-ok">
                 <div class="verdict-title" style="font-size:14px; font-weight:600; margin-bottom:6px;">
-                    Extracción completa
+                    Complete extraction
                 </div>
                 <div style="font-size:13px;">
-                    Métricas estructuradas disponibles.
-                    Revisar señales prioritarias antes de usar los datos.
+                    Structured metrics available.
+                    Review priority signals before using the data.
                 </div>
                 <div style="font-size:11px; margin-top:8px; opacity:0.8;">
-                    Confianza de extracción: {confidence_level}%
+                    Extraction confidence: {confidence_level}%
                 </div>
             </div>
             ''', unsafe_allow_html=True)
@@ -2911,14 +2911,14 @@ if run_button or results_to_show:
             st.markdown(f'''
             <div class="verdict-warning">
                 <div class="verdict-title" style="font-size:14px; font-weight:600; margin-bottom:6px;">
-                    Extracción parcial
+                    Partial extraction
                 </div>
                 <div style="font-size:13px;">
-                    Datos utilizables con precaución.
-                    Verificar métricas clave en el paper original.
+                    Data usable with caution.
+                    Verify key metrics in the original paper.
                 </div>
                 <div style="font-size:11px; margin-top:8px; opacity:0.8;">
-                    Confianza de extracción: {confidence_level}%
+                    Extraction confidence: {confidence_level}%
                 </div>
             </div>
             ''', unsafe_allow_html=True)
@@ -2926,14 +2926,14 @@ if run_button or results_to_show:
             st.markdown(f'''
             <div class="verdict-warning">
                 <div class="verdict-title" style="font-size:14px; font-weight:600; margin-bottom:6px;">
-                    Cobertura baja
+                    Low coverage
                 </div>
                 <div style="font-size:13px;">
-                    El abstract no contiene suficientes datos estructurados
-                    para este análisis.
+                    The abstract does not contain enough structured data
+                    for this analysis.
                 </div>
                 <div style="font-size:11px; margin-top:8px; opacity:0.8;">
-                    Confianza de extracción: {confidence_level}%
+                    Extraction confidence: {confidence_level}%
                 </div>
             </div>
             ''', unsafe_allow_html=True)
@@ -2941,10 +2941,10 @@ if run_button or results_to_show:
         # ══ SECCIÓN 2 — SEÑALES PRIORITARIAS ══════════════════════
         if all_señales:
             st.markdown('''
-            <div class="section-label" style="margin-top:36px; padding-top:28px; border-top:1px solid #E4E4E7;">SEÑALES PRIORITARIAS</div>
+            <div class="section-label" style="margin-top:36px; padding-top:28px; border-top:1px solid #E4E4E7;">PRIORITY SIGNALS</div>
             <div style="font-size:11px; color:#8896A5; margin-bottom:10px;">
-                Hallazgos que requieren atención especial al leer el paper completo.
-                Generadas automáticamente por el sistema.
+                Findings requiring special attention when reading the full paper.
+                Automatically generated by the system.
             </div>
             ''', unsafe_allow_html=True)
 
@@ -2962,7 +2962,7 @@ if run_button or results_to_show:
 
                 poblacion_html = (
                     f'<div style="font-size:11px; color:#8896A5; margin-top:6px;">'
-                    f'Población afectada: {poblacion}</div>'
+                    f'Affected population: {poblacion}</div>'
                     if poblacion and poblacion not in ([], "", "[]", "None", None)
                     else ""
                 )
@@ -2986,10 +2986,10 @@ if run_button or results_to_show:
         # ══ SECCIÓN 3 — MÉTRICAS ESTADÍSTICAS EXTRAÍDAS ═══════════
         st.markdown('''
         <div class="section-label" style="margin-top:36px; padding-top:28px; border-top:1px solid #E4E4E7;">
-            MÉTRICAS ESTADÍSTICAS EXTRAÍDAS
+            EXTRACTED STATISTICAL METRICS
         </div>
         <div style="font-size:11px; color:#8896A5; margin-bottom:10px;">
-            Entidades biomédicas estructuradas extraídas del abstract.
+            Structured biomedical entities extracted from the abstract.
         </div>
         ''', unsafe_allow_html=True)
 
@@ -2999,17 +2999,17 @@ if run_button or results_to_show:
                 if "Dato No Fiable" in main_error or "contenido no" in main_error:
                     reason = main_error.split(":")[-1].strip() if ":" in main_error else main_error
                     st.markdown(
-                        f'<div class="alert-danger">❌ Filtro de Coherencia Activado: {reason}</div>',
+                        f'<div class="alert-danger">❌ Coherence Filter Activated: {reason}</div>',
                         unsafe_allow_html=True,
                     )
                 else:
                     st.markdown(
-                        f'<div class="alert-clinical alert-review">Error en extracción de biomarcadores: {main_error}</div>',
+                        f'<div class="alert-clinical alert-review">Biomarker extraction error: {main_error}</div>',
                         unsafe_allow_html=True,
                     )
             else:
                 st.markdown(
-                    '<div class="alert-clinical alert-acceptable">No se encontraron biomarcadores en los abstracts procesados</div>',
+                    '<div class="alert-clinical alert-acceptable">No biomarkers found in the processed abstracts</div>',
                     unsafe_allow_html=True,
                 )
         else:
@@ -3089,11 +3089,11 @@ if run_button or results_to_show:
             if not fragmentos_df.empty:
                 st.markdown('''
                 <div class="section-label" style="margin-top:36px; padding-top:28px; border-top:1px solid #E4E4E7;">
-                    TRAZABILIDAD — FRAGMENTOS FUENTE
+                    TRACEABILITY — SOURCE FRAGMENTS
                 </div>
                 <div style="font-size:11px; color:#8896A5; margin-bottom:10px;">
-                    Texto exacto del abstract del que se extrajo cada entidad.
-                    Permite verificar la extracción contra el texto original.
+                    Exact text from the abstract from which each entity was extracted.
+                    Allows verification against the original text.
                 </div>
                 ''', unsafe_allow_html=True)
 
@@ -3127,8 +3127,8 @@ if run_button or results_to_show:
         # ══ SECCIÓN MASIVO — RESUMEN + DETALLE ══════════════════
         if mode == "Masivo" and all_payloads:
             st.markdown(
-                '<div class="section-label" style="margin-top:36px; padding-top:28px; border-top:1px solid #E4E4E7;">RESUMEN EJECUTIVO</div>'
-                '<div style="font-size:11px; color:#71717A; margin-bottom:10px;">Una fila por abstract. Ordena por Anomal\u00edas cr\u00edticas para priorizar revisi\u00f3n.</div>',
+                '<div class="section-label" style="margin-top:36px; padding-top:28px; border-top:1px solid #E4E4E7;">EXECUTIVE SUMMARY</div>'
+                '<div style="font-size:11px; color:#71717A; margin-bottom:10px;">One row per abstract. Sort by Critical Anomalies to prioritize review.</div>',
                 unsafe_allow_html=True
             )
             resumen_rows = []
@@ -3147,28 +3147,28 @@ if run_button or results_to_show:
                     if s.get("impacto_clinico") == "alto"
                 )
                 if _criticos > 0:
-                    _estado = "\U0001f6a8 Anomal\u00eda cr\u00edtica"
+                    _estado = "\U0001f6a8 Critical anomaly"
                 elif _confianza >= 85:
-                    _estado = "\u2705 Extracci\u00f3n completa"
+                    _estado = "\u2705 Complete extraction"
                 elif _confianza >= 60:
-                    _estado = "\u26a0\ufe0f Extracci\u00f3n parcial"
+                    _estado = "\u26a0\ufe0f Partial extraction"
                 else:
-                    _estado = "\U0001f50d Cobertura baja"
+                    _estado = "\U0001f50d Low coverage"
                 resumen_rows.append({
                     "#": i,
                     "Abstract": _abstract_id,
-                    "Estado": _estado,
-                    "Entidades": len(_entidades),
-                    "Confianza": str(_confianza) + "%",
-                    "Anomal\u00edas cr\u00edticas": _criticos,
-                    "Se\u00f1ales alto impacto": _senales_altas,
+                    "Status": _estado,
+                    "Entities": len(_entidades),
+                    "Confidence": str(_confianza) + "%",
+                    "Critical anomalies": _criticos,
+                    "High-impact signals": _senales_altas,
                 })
             resumen_df = pd.DataFrame(resumen_rows)
             st.dataframe(resumen_df, use_container_width=True, hide_index=True)
 
             st.markdown(
-                '<div class="section-label" style="margin-top:36px; padding-top:28px; border-top:1px solid #E4E4E7;">DETALLE POR ABSTRACT</div>'
-                '<div style="font-size:11px; color:#71717A; margin-bottom:10px;">Expande cada abstract para ver el detalle completo de la extracci\u00f3n.</div>',
+                '<div class="section-label" style="margin-top:36px; padding-top:28px; border-top:1px solid #E4E4E7;">ABSTRACT DETAIL</div>'
+                '<div style="font-size:11px; color:#71717A; margin-bottom:10px;">Expand each abstract to see the full extraction detail.</div>',
                 unsafe_allow_html=True
             )
             for i, p in enumerate(all_payloads, start=1):
@@ -3191,12 +3191,12 @@ if run_button or results_to_show:
                     _icono = "\U0001f50d"
                 _label = (
                     _icono + " Abstract " + str(i) + " \u2014 " + str(_abstract_id) +
-                    " \u2014 " + str(_confianza) + "% confianza" +
-                    (" \u2014 " + str(_criticos) + " CR\u00cdTICO(S)" if _criticos > 0 else "")
+                    " \u2014 " + str(_confianza) + "% confidence" +
+                    (" \u2014 " + str(_criticos) + " CRITICAL" if _criticos > 0 else "")
                 )
                 with st.expander(_label, expanded=False):
                     if _senales:
-                        st.markdown("**Se\u00f1ales prioritarias:**")
+                        st.markdown("**Priority signals:**")
                         for s in _senales:
                             _tipo = s.get("tipo", "").upper()
                             _desc = s.get("descripcion", "")
@@ -3223,10 +3223,10 @@ if run_button or results_to_show:
 
         # ══ SECCIÓN 5 — EXPORTAR RESULTADOS ═══════════════════════
         st.markdown('''
-        <div class="section-label" style="margin-top:36px; padding-top:28px; border-top:1px solid #E4E4E7;">EXPORTAR RESULTADOS</div>
+        <div class="section-label" style="margin-top:36px; padding-top:28px; border-top:1px solid #E4E4E7;">EXPORT RESULTS</div>
         <div style="font-size:11px; color:#8896A5; margin-bottom:10px;">
-            Descarga los resultados para uso en tu investigación.
-            CSV para Excel/análisis estadístico. JSON para procesamiento programático.
+            Download results for use in your research.
+            CSV for Excel/statistical analysis. JSON for programmatic processing.
         </div>
         ''', unsafe_allow_html=True)
 
@@ -3236,7 +3236,7 @@ if run_button or results_to_show:
                 csv_buffer = io.StringIO()
                 final_df.to_csv(csv_buffer, index=False)
                 st.download_button(
-                    "💾 Descargar CSV",
+                    "💾 Download CSV",
                     data=csv_buffer.getvalue(),
                     file_name="biomarcadores_extraidos.csv",
                     mime="text/csv",
@@ -3249,7 +3249,7 @@ if run_button or results_to_show:
                     "Métricas", "Riesgo de Omisión", "Fragmento fuente",
                 ]).to_csv(empty_csv, index=False)
                 st.download_button(
-                    "💾 Descargar CSV (vacío)",
+                    "💾 Download CSV (empty)",
                     data=empty_csv.getvalue(),
                     file_name="biomarcadores_extraidos.csv",
                     mime="text/csv",
@@ -3258,7 +3258,7 @@ if run_button or results_to_show:
         with exp_col2:
             if hierarchical_json:
                 st.download_button(
-                    "📋 Descargar JSON estructurado",
+                    "📋 Download structured JSON",
                     data=json.dumps(hierarchical_json, indent=2, ensure_ascii=False),
                     file_name="bioextract_output.json",
                     mime="application/json",
@@ -3267,7 +3267,7 @@ if run_button or results_to_show:
         with exp_col3:
             _txt_report = build_txt_report(all_payloads, final_df)
             st.download_button(
-                "📄 Descargar informe TXT",
+                "📄 Download TXT report",
                 data=_txt_report.encode("utf-8"),
                 file_name="bioextract_informe.txt",
                 mime="text/plain",
@@ -3278,8 +3278,8 @@ if run_button or results_to_show:
             with st.expander("👁 Previsualizar JSON estructurado", expanded=False):
                 st.markdown('''
                 <div style="font-size:11px; color:#8896A5; margin-bottom:8px;">
-                    Estructura de datos completa generada por BioExtract.
-                    Formato estándar para integración con otros sistemas.
+                    Complete data structure generated by BioExtract.
+                    Standard format for integration with other systems.
                 </div>
                 ''', unsafe_allow_html=True)
                 st.code(
@@ -3287,10 +3287,10 @@ if run_button or results_to_show:
                     language="json"
                 )
             with st.expander(
-                "🔧 Datos de auditoría técnica  ·  "
-                "Payload completo de la API — solo para "
-                "depuración técnica, no relevante para "
-                "uso clínico",
+                "🔧 Technical audit data  ·  "
+                "Complete API payload — for technical "
+                "debugging only, not relevant for "
+                "clinical use",
                 expanded=False
             ):
                 st.markdown("Complete API payload for technical audit:")
@@ -3303,11 +3303,11 @@ if run_button or results_to_show:
     if errors or sensor_alerts:
         col_err, col_alert = st.columns(2)
         if errors:
-            with col_err.expander(f"❌ Errores ({len(errors)})", expanded=False):
+            with col_err.expander(f"❌ Errors ({len(errors)})", expanded=False):
                 err_df = pd.DataFrame(errors, columns=["Fila", "Error"])
                 st.dataframe(err_df, use_container_width=True, hide_index=True)
         if sensor_alerts:
-            with col_alert.expander(f"⚠️ Alertas ({len(sensor_alerts)})", expanded=False):
+            with col_alert.expander(f"⚠️ Alerts ({len(sensor_alerts)})", expanded=False):
                 sensor_df = pd.DataFrame(sensor_alerts, columns=["Fila", "Alerta"])
                 st.dataframe(sensor_df, use_container_width=True, hide_index=True)
 
@@ -3317,13 +3317,13 @@ with kpi_placeholder.container():
         st.markdown('<div class="kpi-band">', unsafe_allow_html=True)
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.metric("Procesados", processed_count)
+            st.metric("Processed", processed_count)
         with col2:
-            st.metric("Entidades", entity_count)
+            st.metric("Entities", entity_count)
         with col3:
-            st.metric("Alertas", total_alerts)
+            st.metric("Alerts", total_alerts)
         with col4:
-            st.metric("Confianza", f"{confidence_level}%")
+            st.metric("Confidence", f"{confidence_level}%")
         st.markdown('</div>', unsafe_allow_html=True)
     
     # Indicador de demo gratuita
@@ -3334,11 +3334,11 @@ with kpi_placeholder.container():
         <div style="font-size: 11px; color: #8896A5; 
                     text-align: right; margin-top: -12px;
                     margin-bottom: 8px;">
-            Demo gratuita — {restantes} análisis restantes 
-            de {DEMO_LIMIT} · 
+            Free demo — {restantes} analyses remaining
+            of {DEMO_LIMIT} ·
             <a href="https://aistudio.google.com/app/apikey"
                target="_blank" style="color: #1A56DB;">
-                Usar tu propia key →
+                Use your own key →
             </a>
         </div>
         ''', unsafe_allow_html=True)
