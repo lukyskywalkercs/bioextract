@@ -531,7 +531,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.44</span>
+    ">v1.2.45</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -808,6 +808,8 @@ FORMATO JSON (respeta las claves exactas):
 }}
 
 ABSTRACT: {abstract}
+
+Always respond in English. All field values, descriptions, and narrative text must be written in English, regardless of the input language.
 
 Responde SOLO con JSON valido. Sin explicaciones. Sin markdown.
 """
@@ -1761,6 +1763,8 @@ Responde EXCLUSIVAMENTE en este JSON, sin texto adicional:
   ],
   "resumen": "una frase que explica el veredicto al investigador"
 }}
+
+Always respond in English. All field values, descriptions, and narrative text must be written in English, regardless of the input language.
 
 Si el abstract es correcto responde con:
 tiene_errores: false, veredicto: OPTIMA, errores: []
