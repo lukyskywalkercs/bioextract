@@ -531,7 +531,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.39</span>
+    ">v1.2.40</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -1713,6 +1713,13 @@ C) INCOHERENCIAS INTERNAS — valores que se contradicen entre sí:
    - Intervalos de confianza que no incluyen el valor nulo pero
      p-value no significativo, o viceversa
    Solo reporta si hay valores NUMÉRICOS que se contradicen.
+   IMPORTANTE: No marques como paradoja o incoherencia un HR > 1 si el
+   fragmento fuente contiene palabras como 'improvement', 'increase',
+   'better', 'higher', 'benefit', 'favorable', 'correlated with improved'.
+   En metaanálisis y estudios de supervivencia, HR > 1 puede ser correcto
+   cuando se expresa como ratio de supervivencia y no de riesgo. Solo marca
+   paradoja si HR > 1 aparece explícitamente junto a 'worse', 'lower
+   survival', 'higher risk', 'detrimental' o equivalentes negativos.
    Si el abstract no tiene valores numéricos, errores: [].
    → gravedad máxima ALTO, nunca CRITICO.
 
