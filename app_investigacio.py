@@ -531,7 +531,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.42</span>
+    ">v1.2.43</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -2346,7 +2346,7 @@ def _filter_false_paradox(validacion, abstract_text, entidades):
         s for s in señales_orig
         if not (
             _safe_string(s.get("tipo", "")).lower() == "paradoja"
-            and _tiene_mejora(s.get("descripcion", ""))
+            and _tiene_mejora(text_lower)
         )
     ]
 
