@@ -3,6 +3,7 @@ import json
 import os
 import re
 import time
+from collections import Counter
 from typing import Any, Dict, List, Tuple
 
 import pandas as pd
@@ -531,7 +532,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.47</span>
+    ">v1.2.48</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -2825,11 +2826,37 @@ if run_button:
                     hierarchical_json["gaps_criticos"][key] = value
 
         if all_payloads:
-            _first = all_payloads[0].get("payload", {})
-            hierarchical_json["resumen_ejecutivo"]["tipo_estudio"] = _first.get("resumen_ejecutivo", {}).get("tipo_estudio") or _first.get("metadata", {}).get("tipo_estudio", "desconocido")
-            hierarchical_json["resumen_ejecutivo"]["diseno_metodologico"] = _first.get("resumen_ejecutivo", {}).get("diseno_metodologico") or _first.get("metadata", {}).get("diseno_metodologico", "desconocido")
-            hierarchical_json["metadata"]["tipo_estudio"] = hierarchical_json["resumen_ejecutivo"]["tipo_estudio"]
-            hierarchical_json["metadata"]["diseno_metodologico"] = hierarchical_json["resumen_ejecutivo"]["diseno_metodologico"]
+            _TIPO_PRIORITY = [
+                "meta_analisis", "revision_sistematica", "ensayo_clinico",
+                "epidemiologico", "caso_control", "retrospectivo", "caso_clinico",
+            ]
+            _tipos = [
+                p.get("payload", {}).get("resumen_ejecutivo", {}).get("tipo_estudio")
+                or p.get("payload", {}).get("metadata", {}).get("tipo_estudio", "desconocido")
+                for p in all_payloads
+            ]
+            _disenos = [
+                p.get("payload", {}).get("resumen_ejecutivo", {}).get("diseno_metodologico")
+                or p.get("payload", {}).get("metadata", {}).get("diseno_metodologico", "desconocido")
+                for p in all_payloads
+            ]
+            if len(all_payloads) == 1:
+                _tipo_modal = _tipos[0] or "desconocido"
+                _diseno_modal = _disenos[0] or "desconocido"
+            else:
+                _tipo_counts = Counter(v for v in _tipos if v and v != "desconocido")
+                if _tipo_counts:
+                    _max_t = max(_tipo_counts.values())
+                    _cands_t = [v for v, c in _tipo_counts.items() if c == _max_t]
+                    _tipo_modal = next((p for p in _TIPO_PRIORITY if p in _cands_t), _cands_t[0])
+                else:
+                    _tipo_modal = "desconocido"
+                _diseno_counts = Counter(v for v in _disenos if v and v != "desconocido")
+                _diseno_modal = _diseno_counts.most_common(1)[0][0] if _diseno_counts else "desconocido"
+            hierarchical_json["resumen_ejecutivo"]["tipo_estudio"] = _tipo_modal
+            hierarchical_json["resumen_ejecutivo"]["diseno_metodologico"] = _diseno_modal
+            hierarchical_json["metadata"]["tipo_estudio"] = _tipo_modal
+            hierarchical_json["metadata"]["diseno_metodologico"] = _diseno_modal
 
     # Persistir resultados en session_state
     st.session_state.last_df = final_df
