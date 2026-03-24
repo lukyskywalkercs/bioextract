@@ -531,7 +531,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.41</span>
+    ">v1.2.42</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -1809,6 +1809,9 @@ def call_gemini_extract(abstract: str, api_key: str, model_preference: str = "Au
     parsed = parse_json_response(raw_text)
     
     coerced = coerce_payload(parsed, abstract_text=abstract)
+
+    # Filtrar falsos positivos PARADOJA en señales de Gemini (fuente 1)
+    coerced = _filter_false_paradox(coerced, abstract, coerced.get("entidades_de_riesgo", []))
 
     # Segunda llamada — validación científica universal
     entidades_para_validar = coerced.get("entidades_de_riesgo", [])
