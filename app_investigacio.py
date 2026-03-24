@@ -532,7 +532,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.48</span>
+    ">v1.2.49</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -792,9 +792,9 @@ FORMATO JSON (respeta las claves exactas):
     }}
   ],
   "gaps_criticos": {{
-    "microbiota": "NO DISPONIBLE",
-    "biomarcadores_moleculares": "descripcion o NO DISPONIBLE",
-    "metricas_estadisticas": "descripcion o NO DISPONIBLE",
+    "microbiota": "NOT AVAILABLE",
+    "biomarcadores_moleculares": "description or NOT AVAILABLE",
+    "metricas_estadisticas": "description or NOT AVAILABLE",
     "traslacion_clinica": "segun REGLA 10"
   }},
   "metadata": {{
@@ -1141,7 +1141,7 @@ def generate_signals_from_errors(
     signals = []
 
     for entidad in entidades:
-        if _safe_string(entidad.get("riesgo_omision", "")) != "CRÍTICO":
+        if _safe_string(entidad.get("riesgo_omision", "")) != "CRITICAL":
             continue
 
         nombre = entidad.get("nombre", "DESCONOCIDO")
@@ -1212,10 +1212,10 @@ def coerce_payload(data: Dict[str, Any], abstract_text: str = "") -> Dict[str, A
     processed_metadata = {
         "doi": _safe_string(metadata.get("doi")),
         "fuente": _safe_string(metadata.get("fuente")),
-        "nivel_evidencia": _safe_string(metadata.get("nivel_evidencia", "desconocido")),
+        "nivel_evidencia": _safe_string(metadata.get("nivel_evidencia", "unknown")),
         "periodo_datos": _safe_string(metadata.get("periodo_datos")),
         "tipo_estudio": _safe_string(metadata.get("tipo_estudio")),
-        "diseno_metodologico": _safe_string(metadata.get("diseno_metodologico", "desconocido"))
+        "diseno_metodologico": _safe_string(metadata.get("diseno_metodologico", "unknown"))
     }
     
     # Procesar entidades de riesgo con exhaustividad (con fallback para compatibilidad)
@@ -1282,17 +1282,17 @@ def coerce_payload(data: Dict[str, Any], abstract_text: str = "") -> Dict[str, A
         
         processed_entidad = {
             "nombre": nombre,
-            "tipo": _safe_string(entidad.get("tipo", "desconocido")),
+            "tipo": _safe_string(entidad.get("tipo", "unknown")),
             "resolucion": _safe_string(entidad.get("resolucion", "literal")),
             "biomarcadores_implicitos": _safe_list(entidad.get("biomarcadores_implicitos", [])),
             "es_literal": "true",  # Por defecto literal
             "metricas": processed_metricas,
             "poblacion_afectada": _safe_list(entidad.get("poblacion_afectada", [])),
-            "relacion_causal": _safe_string(entidad.get("relacion_causal", "correlacional")),
+            "relacion_causal": _safe_string(entidad.get("relacion_causal", "correlational")),
             "calificador_original": _safe_string(entidad.get("cualificador_original") or entidad.get("calificador_original", "")),
             "estado_validacion": "OK",  # Por defecto OK
-            "riesgo_omision": "Aceptable",  # Por defecto aceptable
-            "nivel_evidencia": _safe_string(entidad.get("nivel_evidencia", "epidemiologico")),
+            "riesgo_omision": "Acceptable",  # Por defecto aceptable
+            "nivel_evidencia": _safe_string(entidad.get("nivel_evidencia", "epidemiological")),
             "fragmento_fuente": _safe_string(entidad.get("fragmento_fuente", ""))
         }
         
@@ -1303,7 +1303,7 @@ def coerce_payload(data: Dict[str, Any], abstract_text: str = "") -> Dict[str, A
         layer1_errors = validate_physical_limits_hierarchical(processed_entidad)
 
         if layer1_errors:
-            processed_entidad["riesgo_omision"] = "CRÍTICO"
+            processed_entidad["riesgo_omision"] = "CRITICAL"
             processed_entidad["estado_validacion"] = "🚨"
 
         validation_errors.extend(layer1_errors)
@@ -1316,10 +1316,10 @@ def coerce_payload(data: Dict[str, Any], abstract_text: str = "") -> Dict[str, A
     for señal in señales if isinstance(señales, list) else []:
         if isinstance(señal, dict):
             processed_señal = {
-                "tipo": _safe_string(señal.get("tipo", "desconocido")),
+                "tipo": _safe_string(señal.get("tipo", "unknown")),
                 "descripcion": _safe_string(señal.get("descripcion", "")),
                 "poblacion_afectada": _safe_string(señal.get("poblacion_afectada", "")),
-                "impacto_clinico": _safe_string(señal.get("impacto_clinico", "desconocido"))
+                "impacto_clinico": _safe_string(señal.get("impacto_clinico", "unknown"))
             }
             processed_señales.append(processed_señal)
 
@@ -1344,8 +1344,8 @@ def coerce_payload(data: Dict[str, Any], abstract_text: str = "") -> Dict[str, A
     
     raw_resum = data.get("resumen_ejecutivo", {}) or {}
     processed_resumen = {
-        "tipo_estudio": _safe_string(raw_resum.get("tipo_estudio", processed_metadata.get("tipo_estudio", "desconocido"))),
-        "diseno_metodologico": _safe_string(raw_resum.get("diseno_metodologico", processed_metadata.get("diseno_metodologico", "desconocido")))
+        "tipo_estudio": _safe_string(raw_resum.get("tipo_estudio", processed_metadata.get("tipo_estudio", "unknown"))),
+        "diseno_metodologico": _safe_string(raw_resum.get("diseno_metodologico", processed_metadata.get("diseno_metodologico", "unknown")))
     }
 
     return {
@@ -1482,12 +1482,12 @@ def detect_study_type(metadata: Dict[str, Any]) -> str:
     texto = f"{nivel} {tipo}"
 
     if any(k in texto for k in ["meta-analysis","systematic review"]):
-        return "meta_analisis"
+        return "meta_analysis"
     if any(k in texto for k in ["randomized","rct","trial","placebo","double-blind","phase"]):
         return "rct"
     if any(k in texto for k in ["in vitro","in vivo","rna-seq","genomic","lfc","fold change"]):
         return "molecular"
-    return "epidemiologico"
+    return "epidemiological"
 
 
 def calculate_hierarchical_confidence(
@@ -1518,21 +1518,21 @@ def calculate_hierarchical_confidence(
     texto_eval = f"{nivel} {tipo}".lower()
     
     if any(k in texto_eval for k in keywords_meta):
-        estudio = "meta_analisis"
+        estudio = "meta_analysis"
     elif any(k in texto_eval for k in keywords_rct):
         estudio = "rct"
     elif any(k in texto_eval for k in keywords_molecular):
         estudio = "molecular"
     elif any(k in texto_eval for k in keywords_epidemiologico):
-        estudio = "epidemiologico"
-    elif nivel in ["epidemiologico", "revision"]:
-        estudio = "epidemiologico"
+        estudio = "epidemiological"
+    elif nivel in ["epidemiological", "revision"]:
+        estudio = "epidemiological"
     else:
-        estudio = "epidemiologico"  # fallback conservador
+        estudio = "epidemiological"  # fallback conservador
     
     # ── PARÁMETROS POR TIPO ───────────────────────────────────────────
     config = {
-        "epidemiologico": {
+        "epidemiological": {
             "base": 50,              # ← era 65, bajamos base
             "bonus_entidades": 10,   # ← era 15
             "bonus_señales": 10,
@@ -1565,7 +1565,7 @@ def calculate_hierarchical_confidence(
             "umbral_critico": 65,
             "umbral_excelencia": 85,
         },
-        "meta_analisis": {
+        "meta_analysis": {
             "base": 50,
             "bonus_entidades": 10,
             "bonus_señales": 15,
@@ -1576,8 +1576,8 @@ def calculate_hierarchical_confidence(
             "umbral_excelencia": 88,
         },
     }
-    
-    cfg = config.get(estudio, config["epidemiologico"])
+
+    cfg = config.get(estudio, config["epidemiological"])
     score = cfg["base"]
     
     # ── BONIFICACIONES COMUNES ────────────────────────────────────────
@@ -1601,7 +1601,7 @@ def calculate_hierarchical_confidence(
         entidades_con_metricas = sum(
             1 for e in entidades
             if e.get("metricas") and any(
-                v is not None and v != "" and v != "NO DISPONIBLE"
+                v is not None and v != "" and v != "NOT AVAILABLE"
                 for v in e["metricas"].values()
             )
         )
@@ -1634,14 +1634,14 @@ def calculate_hierarchical_confidence(
         e.get("metricas", {}).get("LFC") is not None
         for e in entidades
     )
-    if estudio in ["rct", "molecular", "meta_analisis"]:
+    if estudio in ["rct", "molecular", "meta_analysis"]:
         if tiene_pvalue:
             score += cfg.get("bonus_pvalue", 0)
         if tiene_hr_or:
             score += cfg.get("bonus_hr_or", 0)
         if tiene_lfc:
             score += cfg.get("bonus_lfc", 0)
-    elif estudio == "epidemiologico" and (tiene_pvalue or tiene_hr_or):
+    elif estudio == "epidemiological" and (tiene_pvalue or tiene_hr_or):
         score += cfg.get("bonus_metricas", 0)
     
     # Única penalización — errores matemáticos críticos
@@ -1837,7 +1837,7 @@ def call_gemini_extract(abstract: str, api_key: str, model_preference: str = "Au
     for entidad in coerced.get("entidades_de_riesgo", []):
         nombre = _safe_string(entidad.get("nombre", "")).lower()
         if entidades_con_error and any(err in nombre or nombre in err for err in entidades_con_error):
-            entidad["riesgo_omision"] = "CRÍTICO"
+            entidad["riesgo_omision"] = "CRITICAL"
             entidad["estado_validacion"] = "🚨"
 
     # Calcular tipo de estudio (para metadata)
@@ -1854,7 +1854,7 @@ def call_gemini_extract(abstract: str, api_key: str, model_preference: str = "Au
     # Caps por errores matemáticos críticos detectados en entidades ya procesadas
     criticos = sum(
         1 for e in coerced.get("entidades_de_riesgo", [])
-        if str(e.get("riesgo_omision", "")).upper() == "CRÍTICO"
+        if str(e.get("riesgo_omision", "")).upper() == "CRITICAL"
     )
 
     if criticos >= 2:
@@ -1896,7 +1896,7 @@ def normalize_results_hierarchical(
     
     for entitat in entitats:
         nom = entitat.get("nombre", "")
-        tipus = entitat.get("tipo", "desconocido")
+        tipus = entitat.get("tipo", "unknown")
         resolucio = entitat.get("resolucion", "literal")
         biomarcadors_implicits = entitat.get("biomarcadores_implicitos", [])
         metriques = entitat.get("metricas", {})
@@ -1918,12 +1918,12 @@ def normalize_results_hierarchical(
         if p_value_num is not None and p_value_num < 0.05:
             estado = "p<0.05"
         elif resolucio == "agregado_clinico" and biomarcadors_implicits:
-            estado = "INFERIDO"
+            estado = "INFERRED"
         elif len(fragmento.strip()) > 15 and estat_validacio == "OK":
             estado = "OK"
         elif tipus == "demografico":
             estado = "DEMOG."
-        elif tipus == "epidemiologico":
+        elif tipus == "epidemiological":
             estado = "EPID."
         elif tipus == "molecular":
             estado = "MOL."
@@ -1971,7 +1971,7 @@ def normalize_results_hierarchical(
         
         # Otras métricas (ya procesadas en coerce_payload)
         for key, value in metriques.items():
-            if key not in ["HR", "OR", "p_value", "LFC", "IC95", "n_muestral"] and value and value != "NO DISPONIBLE":
+            if key not in ["HR", "OR", "p_value", "LFC", "IC95", "n_muestral"] and value and value != "NOT AVAILABLE":
                 # Formatear números si es posible, sino como string
                 if isinstance(value, (int, float)):
                     if key in ["mortalidad_pct", "incidencia_anual_pct", "reduccion_mortalidad_pct", 
@@ -2030,7 +2030,7 @@ def normalize_results_hierarchical(
             "Calificador": qualificador,
             "Métricas": metriques_str,
             "P-value": metriques.get("p_value") if metriques.get("p_value") is not None else "",
-            "Nivel evidencia": entitat.get("nivel_evidencia", metadata.get("nivel_evidencia", "desconocido")),
+            "Nivel evidencia": entitat.get("nivel_evidencia", metadata.get("nivel_evidencia", "unknown")),
             "Riesgo de Omisión": risc_omissio,
             "Fragmento fuente": fragmento
         })
@@ -2052,7 +2052,7 @@ def normalize_results_hierarchical(
         ),
         "entitats_epidemiologiques": sum(
             1 for e in entitats 
-            if (e.get("resolucion") or e.get("resolucio")) == "epidemiologico"
+            if (e.get("resolucion") or e.get("resolucio")) == "epidemiological"
         )
     }
     
@@ -2210,7 +2210,7 @@ def _tiene_metrica_numerica(metricas_str):
     if not metricas_str:
         return False
     s = str(metricas_str).strip()
-    if s in ["—", "NO DISPONIBLE", "", "-"]:
+    if s in ["—", "NOT AVAILABLE", "", "-"]:
         return False
     return bool(re.search(r'\d+\.?\d*', s))
 
@@ -2295,7 +2295,7 @@ def _check_minimum_metrics(payload, abstract_text):
     gaps = payload.setdefault("gaps_criticos", {})
     texto = str(abstract_text).lower()
 
-    if tipo == "epidemiologico" and not tiene_pvalue and not tiene_hr and not tiene_or:
+    if tipo == "epidemiological" and not tiene_pvalue and not tiene_hr and not tiene_or:
         gaps["metricas_minimas"] = (
             "Correlational/epidemiological study without correlation coefficient "
             "or p-value. Reported associations are not statistically quantified."
@@ -2304,7 +2304,7 @@ def _check_minimum_metrics(payload, abstract_text):
         gaps["metricas_minimas"] = (
             "Clinical trial without Hazard Ratio or Odds Ratio with confidence interval."
         )
-    elif tipo == "epidemiologico" and any(
+    elif tipo == "epidemiological" and any(
         w in texto for w in ("caso", "control", "matched")
     ) and not tiene_or:
         gaps["metricas_minimas"] = "Case-control design without Odds Ratio."
@@ -2402,7 +2402,7 @@ def build_txt_report(all_payloads, final_df):
             lines_txt.append(
                 "Study type: " + str(_tipo_estudio)
             )
-        if _diseno and _diseno != "desconocido":
+        if _diseno and _diseno != "unknown":
             lines_txt.append(
                 "Methodological design: " + str(_diseno)
             )
@@ -2759,7 +2759,7 @@ if run_button:
 
     # ── CÁLCULO PREVIO ────────────────────────────────────────────
     hay_criticos = any(
-        _safe_string(e.get("riesgo_omision", "")).upper() == "CRÍTICO"
+        _safe_string(e.get("riesgo_omision", "")).upper() == "CRITICAL"
         for p in all_payloads for e in p.get("payload", {}).get("entidades_de_riesgo", [])
     )
 
@@ -2797,7 +2797,7 @@ if run_button:
                 entitats_inferides += 1
             else:
                 entitats_literals += 1
-            if row.get("Métricas", "NO DISPONIBLE") != "NO DISPONIBLE":
+            if row.get("Métricas", "NOT AVAILABLE") != "NOT AVAILABLE":
                 entitats_amb_metriques += 1
             hierarchical_json["entidades_de_riesgo"].append({
                 "nombre": row["Entidad"],
@@ -2822,37 +2822,37 @@ if run_button:
             )
             for key, value in payload.get("gaps_criticos", {}).items():
                 if key not in hierarchical_json["gaps_criticos"] or \
-                        hierarchical_json["gaps_criticos"][key] == "NO DISPONIBLE":
+                        hierarchical_json["gaps_criticos"][key] == "NOT AVAILABLE":
                     hierarchical_json["gaps_criticos"][key] = value
 
         if all_payloads:
             _TIPO_PRIORITY = [
-                "meta_analisis", "revision_sistematica", "ensayo_clinico",
-                "epidemiologico", "caso_control", "retrospectivo", "caso_clinico",
+                "meta_analysis", "systematic_review", "clinical_trial",
+                "epidemiological", "case_control", "retrospective", "case_report",
             ]
             _tipos = [
                 p.get("payload", {}).get("resumen_ejecutivo", {}).get("tipo_estudio")
-                or p.get("payload", {}).get("metadata", {}).get("tipo_estudio", "desconocido")
+                or p.get("payload", {}).get("metadata", {}).get("tipo_estudio", "unknown")
                 for p in all_payloads
             ]
             _disenos = [
                 p.get("payload", {}).get("resumen_ejecutivo", {}).get("diseno_metodologico")
-                or p.get("payload", {}).get("metadata", {}).get("diseno_metodologico", "desconocido")
+                or p.get("payload", {}).get("metadata", {}).get("diseno_metodologico", "unknown")
                 for p in all_payloads
             ]
             if len(all_payloads) == 1:
-                _tipo_modal = _tipos[0] or "desconocido"
-                _diseno_modal = _disenos[0] or "desconocido"
+                _tipo_modal = _tipos[0] or "unknown"
+                _diseno_modal = _disenos[0] or "unknown"
             else:
-                _tipo_counts = Counter(v for v in _tipos if v and v != "desconocido")
+                _tipo_counts = Counter(v for v in _tipos if v and v != "unknown")
                 if _tipo_counts:
                     _max_t = max(_tipo_counts.values())
                     _cands_t = [v for v, c in _tipo_counts.items() if c == _max_t]
                     _tipo_modal = next((p for p in _TIPO_PRIORITY if p in _cands_t), _cands_t[0])
                 else:
-                    _tipo_modal = "desconocido"
-                _diseno_counts = Counter(v for v in _disenos if v and v != "desconocido")
-                _diseno_modal = _diseno_counts.most_common(1)[0][0] if _diseno_counts else "desconocido"
+                    _tipo_modal = "unknown"
+                _diseno_counts = Counter(v for v in _disenos if v and v != "unknown")
+                _diseno_modal = _diseno_counts.most_common(1)[0][0] if _diseno_counts else "unknown"
             hierarchical_json["resumen_ejecutivo"]["tipo_estudio"] = _tipo_modal
             hierarchical_json["resumen_ejecutivo"]["diseno_metodologico"] = _diseno_modal
             hierarchical_json["metadata"]["tipo_estudio"] = _tipo_modal
@@ -3053,7 +3053,7 @@ if run_button or results_to_show:
             def highlight_status(val):
                 if val == "p<0.05":
                     return "background-color: #FFF3E0; color: #92400E; font-weight: 500;"
-                elif val == "INFERIDO":
+                elif val == "INFERRED":
                     return "background-color: #E8EAF6; color: #3730A3; font-weight: 500;"
                 elif val == "OK":
                     return "color: #94A3B8; font-weight: 400;"
@@ -3064,12 +3064,12 @@ if run_button or results_to_show:
                 return ""
 
             def highlight_omission_risk(val):
-                if val == "CRÍTICO":
+                if val == "CRITICAL":
                     return "background-color: #FFEBEE; color: #D32F2F; font-weight: bold;"
                 return ""
 
             def clean_metricas_display(val):
-                if not val or val in ("NO DISPONIBLE", "—"):
+                if not val or val in ("NOT AVAILABLE", "—"):
                     return "—"
                 prefijos = [
                     "incidencia_anual_pct=",
@@ -3132,10 +3132,10 @@ if run_button or results_to_show:
                     fragmento = str(row.get("Fragmento fuente", "")).strip()
                     estado = row.get("Estado", "")
                     metricas = row.get("Métricas", "")
-                    es_critico = str(row.get("Riesgo de Omisión", "")) == "CRÍTICO"
+                    es_critico = str(row.get("Riesgo de Omisión", "")) == "CRITICAL"
                     border_color = "#991B1B" if es_critico else "#E2E8F0"
                     bg_color = "#FEF2F2" if es_critico else "#F7F9FC"
-                    metricas_str = metricas if metricas and metricas != "NO DISPONIBLE" else ""
+                    metricas_str = metricas if metricas and metricas != "NOT AVAILABLE" else ""
 
                     st.markdown(f'''
                     <div class="fragment-card" style="border:1px solid {border_color}; border-radius:6px;
