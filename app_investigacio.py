@@ -531,7 +531,7 @@ st.markdown('''
         padding: 2px 7px;
         align-self: center;
         margin-left: 2px;
-    ">v1.2.45</span>
+    ">v1.2.46</span>
     <span style="
         font-size: 12px;
         color: #A1A1AA;
@@ -1334,11 +1334,11 @@ def coerce_payload(data: Dict[str, Any], abstract_text: str = "") -> Dict[str, A
     # Procesar gaps críticos (con fallback)
     gaps = data.get("gaps_criticos") or data.get("gaps_critics", {})
     processed_gaps = {
-        "microbiota": _safe_string(gaps.get("microbiota", "NO DISPONIBLE")),
-        "biomarcadores_moleculares": _safe_string(gaps.get("biomarcadores_moleculares", "NO DISPONIBLE")),
-        "metricas_estadisticas": _safe_string(gaps.get("metricas_estadisticas", "NO DISPONIBLE")),
-        "datos_genomicos": _safe_string(gaps.get("datos_genomicos", "NO DISPONIBLE")),
-        "interacciones_farmacologicas": _safe_string(gaps.get("interacciones_farmacologicas", "NO DISPONIBLE"))
+        "microbiota": _safe_string(gaps.get("microbiota", "NOT AVAILABLE")),
+        "biomarcadores_moleculares": _safe_string(gaps.get("biomarcadores_moleculares", "NOT AVAILABLE")),
+        "metricas_estadisticas": _safe_string(gaps.get("metricas_estadisticas", "NOT AVAILABLE")),
+        "datos_genomicos": _safe_string(gaps.get("datos_genomicos", "NOT AVAILABLE")),
+        "interacciones_farmacologicas": _safe_string(gaps.get("interacciones_farmacologicas", "NOT AVAILABLE"))
     }
     
     raw_resum = data.get("resumen_ejecutivo", {}) or {}
@@ -1409,7 +1409,7 @@ def analyze_orphan_data(abstract: str, extracted_results: List[Dict[str, Any]], 
     
     # Per abstracts epidemiològics, esperem menys registres que per abstracts moleculars
     if text_length > 200 and num_results == 0:
-        orphan_alerts.append("POSSIBLE SUBEXTRACCIÓ: Text llarg sense biomarcadors capturats")
+        orphan_alerts.append("POSSIBLE UNDER-EXTRACTION: Long text with no biomarkers captured")
     
     return orphan_alerts
 
@@ -1463,13 +1463,13 @@ def analyze_hierarchical_density(abstract: str, entidades: List[Dict[str, Any]],
     uncaptured_biomarkers = [b for b in potential_biomarkers if b.lower() not in captured_entities]
     
     if len(uncaptured_biomarkers) > 0:
-        density_alerts.append(f"POSSIBLE SUBEXTRACCIÓ: Entitats potencials no capturades: {', '.join(list(uncaptured_biomarkers)[:3])}")
+        density_alerts.append(f"POSSIBLE UNDER-EXTRACTION: Potential entities not captured: {', '.join(list(uncaptured_biomarkers)[:3])}")
     
     # Alertes de densitat global
     if abstract_length > 200 and len(entidades) == 0:
-        density_alerts.append("ALERTA CRÍTICA: Text llarg sense entitats capturades - Revisió manual obligatòria")
+        density_alerts.append("CRITICAL ALERT: Long text with no entities captured - Manual review required")
     elif abstract_length > 100 and len(entidades) < 2:
-        density_alerts.append("ALERTA DENSITAT: Possible subextracció en text dens")
+        density_alerts.append("DENSITY ALERT: Possible under-extraction in dense text")
     
     return density_alerts
 
@@ -2255,9 +2255,9 @@ def _check_survival_triggers(payload, abstract_text):
         if "gaps_criticos" not in payload:
             payload["gaps_criticos"] = {}
         payload["gaps_criticos"]["supervision_temporal"] = (
-            "Término pronóstico detectado sin datos de supervivencia "
-            "(HR, CI, tiempo de seguimiento). La conclusión pronóstica "
-            "no está respaldada estadísticamente en este abstract."
+            "Prognostic term detected without survival data "
+            "(HR, CI, follow-up time). The prognostic conclusion "
+            "is not statistically supported in this abstract."
         )
     return payload
 
@@ -2296,18 +2296,17 @@ def _check_minimum_metrics(payload, abstract_text):
 
     if tipo == "epidemiologico" and not tiene_pvalue and not tiene_hr and not tiene_or:
         gaps["metricas_minimas"] = (
-            "Estudio correlacional/epidemiológico sin coeficiente de correlación "
-            "ni p-value. Las asociaciones mencionadas no están cuantificadas "
-            "estadísticamente."
+            "Correlational/epidemiological study without correlation coefficient "
+            "or p-value. Reported associations are not statistically quantified."
         )
     elif tipo in ("rct", "clinico_fase3") and not (tiene_hr or tiene_or) and not tiene_ci:
         gaps["metricas_minimas"] = (
-            "Ensayo clínico sin Hazard Ratio ni Odds Ratio con intervalo de confianza."
+            "Clinical trial without Hazard Ratio or Odds Ratio with confidence interval."
         )
     elif tipo == "epidemiologico" and any(
         w in texto for w in ("caso", "control", "matched")
     ) and not tiene_or:
-        gaps["metricas_minimas"] = "Diseño caso-control sin Odds Ratio."
+        gaps["metricas_minimas"] = "Case-control design without Odds Ratio."
 
     return payload
 
@@ -2359,11 +2358,11 @@ def _filter_false_paradox(validacion, abstract_text, entidades):
 
 def build_txt_report(all_payloads, final_df):
     lines_txt = []
-    lines_txt.append("BIOEXTRACT - INFORME DE EXTRACCION")
+    lines_txt.append("BIOEXTRACT - EXTRACTION REPORT")
     lines_txt.append(
-        "Generado: " + pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')
+        "Generated: " + pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')
     )
-    lines_txt.append("Abstracts procesados: " + str(len(all_payloads)))
+    lines_txt.append("Abstracts processed: " + str(len(all_payloads)))
     lines_txt.append("=" * 55)
     lines_txt.append("")
     for i, p in enumerate(all_payloads, start=1):
@@ -2379,15 +2378,15 @@ def build_txt_report(all_payloads, final_df):
             if str(e.get("riesgo_omision", "")).upper() == "CRITICO"
         ]
         if _criticos:
-            _veredicto = "ANOMALIA CRITICA"
+            _veredicto = "CRITICAL ANOMALY"
         elif _confianza >= 85:
-            _veredicto = "EXTRACCION COMPLETA"
+            _veredicto = "COMPLETE EXTRACTION"
         elif _confianza >= 60:
-            _veredicto = "EXTRACCION PARCIAL"
+            _veredicto = "PARTIAL EXTRACTION"
         else:
-            _veredicto = "COBERTURA BAJA"
+            _veredicto = "LOW COVERAGE"
         lines_txt.append("ABSTRACT " + str(i) + " - " + str(_abstract_id))
-        lines_txt.append(_veredicto + " - " + str(_confianza) + "% confianza")
+        lines_txt.append(_veredicto + " - " + str(_confianza) + "% confidence")
         _tipo_estudio = _payload.get("metadata", {}).get(
             "tipo_estudio", ""
         ) or _payload.get("resumen_ejecutivo", {}).get(
@@ -2400,22 +2399,22 @@ def build_txt_report(all_payloads, final_df):
         )
         if _tipo_estudio:
             lines_txt.append(
-                "Tipo de estudio: " + str(_tipo_estudio)
+                "Study type: " + str(_tipo_estudio)
             )
         if _diseno and _diseno != "desconocido":
             lines_txt.append(
-                "Diseño metodológico: " + str(_diseno)
+                "Methodological design: " + str(_diseno)
             )
         lines_txt.append("-" * 55)
         if _criticos:
-            lines_txt.append("ANOMALIAS CRITICAS:")
+            lines_txt.append("CRITICAL ANOMALIES:")
             for e in _criticos:
                 lines_txt.append(
                     "   * " + str(e.get("nombre", "")) + " - " + str(e.get("metricas_completas", ""))
                 )
             lines_txt.append("")
         if _senales:
-            lines_txt.append("SENALES PRIORITARIAS:")
+            lines_txt.append("PRIORITY SIGNALS:")
             for s in _senales:
                 _impacto = s.get("impacto_clinico", "").upper()
                 _tipo = s.get("tipo", "").upper()
@@ -2425,10 +2424,10 @@ def build_txt_report(all_payloads, final_df):
             lines_txt.append("")
         _metricas_entidades = [
             e for e in _entidades
-            if e.get("metricas_completas", "") not in ["NO DISPONIBLE", "", None]
+            if e.get("metricas_completas", "") not in ["NO DISPONIBLE", "NOT AVAILABLE", "", None]
         ]
         if _metricas_entidades:
-            lines_txt.append("METRICAS EXTRAIDAS:")
+            lines_txt.append("EXTRACTED METRICS:")
             for e in _metricas_entidades:
                 _nombre = str(e.get("nombre", ""))
                 _metricas = str(e.get("metricas_completas", ""))
@@ -2438,10 +2437,10 @@ def build_txt_report(all_payloads, final_df):
             lines_txt.append("")
         _gaps_relevantes = {
             k: v for k, v in _gaps.items()
-            if v and v != "NO DISPONIBLE"
+            if v and v not in ("NO DISPONIBLE", "NOT AVAILABLE")
         }
         if _gaps_relevantes:
-            lines_txt.append("GAPS DETECTADOS:")
+            lines_txt.append("DETECTED GAPS:")
             for k, v in _gaps_relevantes.items():
                 lines_txt.append("   * " + str(k) + ": " + str(v))
             lines_txt.append("")
@@ -2545,10 +2544,10 @@ if not run_button:
         'capivasertib · fulvestrant · HR-positive HER2-negative metastatic breast cancer'
         '</div>'
         '<div style="font-size:13px;color:var(--ink-2);line-height:1.6;">'
-        '<span style="color:var(--ink);font-weight:500;">Métricas:</span> HR=0.60 &middot; CI [0.51&#8211;0.71] &middot; p&lt;0.001'
+        '<span style="color:var(--ink);font-weight:500;">Metrics:</span> HR=0.60 &middot; CI [0.51&#8211;0.71] &middot; p&lt;0.001'
         '</div>'
         '<div style="font-size:13px;color:var(--ink-2);line-height:1.6;">'
-        '<span style="color:var(--ink);font-weight:500;">Tipo de estudio:</span> RCT clínico fase III'
+        '<span style="color:var(--ink);font-weight:500;">Study type:</span> Phase III clinical RCT'
         '</div>'
         '</div>'
         '</div>'
